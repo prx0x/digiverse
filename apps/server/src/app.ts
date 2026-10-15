@@ -7,6 +7,7 @@ import type { AppConfig } from './config.js';
 import type { Db } from './db/client.js';
 import { AppError } from './lib/errors.js';
 import { attachAuth, ensureCsrfCookie } from './plugins/auth.js';
+import { adminEventRoutes } from './routes/adminEvent.js';
 import { adminTeamRoutes } from './routes/adminTeams.js';
 import { authRoutes } from './routes/auth.js';
 import { healthRoutes } from './routes/health.js';
@@ -115,6 +116,7 @@ export async function buildApp({ config, db }: BuildAppOptions) {
     async (api) => {
       await api.register(authRoutes);
       await api.register(adminTeamRoutes);
+      await api.register(adminEventRoutes);
       await api.register(teamRoutes);
     },
     { prefix: '/api/v1' },

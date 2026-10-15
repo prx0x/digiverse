@@ -1,0 +1,995 @@
+{
+  "id": "ed6b9fe0-51c3-4af5-85ca-812fa6d895f8",
+  "prevId": "c5179f26-2bf7-48fe-8c43-666ad9a6d79a",
+  "version": "7",
+  "dialect": "postgresql",
+  "tables": {
+    "public.card_supply": {
+      "name": "card_supply",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "event_id": {
+          "name": "event_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "card_type": {
+          "name": "card_type",
+          "type": "power_up_card",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "max_supply": {
+          "name": "max_supply",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "card_supply_event_id_events_id_fk": {
+          "name": "card_supply_event_id_events_id_fk",
+          "tableFrom": "card_supply",
+          "tableTo": "events",
+          "columnsFrom": [
+            "event_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "card_supply_event_card_unique": {
+          "name": "card_supply_event_card_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "event_id",
+            "card_type"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.event_rules": {
+      "name": "event_rules",
+      "schema": "",
+      "columns": {
+        "event_id": {
+          "name": "event_id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "clash_penalty_mode": {
+          "name": "clash_penalty_mode",
+          "type": "clash_penalty_mode",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "clash_penalty_x": {
+          "name": "clash_penalty_x",
+          "type": "numeric(20, 10)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "majority_penalty_mode": {
+          "name": "majority_penalty_mode",
+          "type": "majority_penalty_mode",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "majority_penalty_x": {
+          "name": "majority_penalty_x",
+          "type": "numeric(20, 10)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "reversed_majority_reward": {
+          "name": "reversed_majority_reward",
+          "type": "reversed_majority_reward",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "reverse_affects_equal_to": {
+          "name": "reverse_affects_equal_to",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "reverse_affects_tiebreaker": {
+          "name": "reverse_affects_tiebreaker",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "reverse_is_global": {
+          "name": "reverse_is_global",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "shield_covers_clash": {
+          "name": "shield_covers_clash",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "shield_covers_majority": {
+          "name": "shield_covers_majority",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "shield_covers_reversed_minority": {
+          "name": "shield_covers_reversed_minority",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "shield_consumed_on_play": {
+          "name": "shield_consumed_on_play",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "std_dev_mode": {
+          "name": "std_dev_mode",
+          "type": "std_dev_mode",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "sample_stddev_for_single_value": {
+          "name": "sample_stddev_for_single_value",
+          "type": "sample_stddev_single",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "degenerate_round_mode": {
+          "name": "degenerate_round_mode",
+          "type": "degenerate_round_mode",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "equality_mode": {
+          "name": "equality_mode",
+          "type": "equality_mode",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "equality_epsilon": {
+          "name": "equality_epsilon",
+          "type": "numeric(20, 10)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "display_rounding": {
+          "name": "display_rounding",
+          "type": "display_rounding",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "max_cards_played_per_round_per_team": {
+          "name": "max_cards_played_per_round_per_team",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "allow_multiple_reverse_per_team": {
+          "name": "allow_multiple_reverse_per_team",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "unused_cards_carry_forward": {
+          "name": "unused_cards_carry_forward",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "cards_consumed_even_if_no_effect": {
+          "name": "cards_consumed_even_if_no_effect",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "no_pick_behaviour": {
+          "name": "no_pick_behaviour",
+          "type": "no_pick_behaviour",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "allow_pick_change_before_lock": {
+          "name": "allow_pick_change_before_lock",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "pre_round_cards_lobby_only": {
+          "name": "pre_round_cards_lobby_only",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "rapid_fire_tie_break": {
+          "name": "rapid_fire_tie_break",
+          "type": "rapid_fire_tie_break",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "rapid_fire_max_attempts": {
+          "name": "rapid_fire_max_attempts",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "event_rules_event_id_events_id_fk": {
+          "name": "event_rules_event_id_events_id_fk",
+          "tableFrom": "event_rules",
+          "tableTo": "events",
+          "columnsFrom": [
+            "event_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.events": {
+      "name": "events",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "name": {
+          "name": "name",
+          "type": "varchar(128)",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'Digiverse'"
+        },
+        "status": {
+          "name": "status",
+          "type": "event_status",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'DRAFT'"
+        },
+        "game_phase_a_round_count": {
+          "name": "game_phase_a_round_count",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 1
+        },
+        "game_phase_b_round_count": {
+          "name": "game_phase_b_round_count",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 1
+        },
+        "rapid_fire_default_time_limit_seconds": {
+          "name": "rapid_fire_default_time_limit_seconds",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 30
+        },
+        "round_selection_seconds": {
+          "name": "round_selection_seconds",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 60
+        },
+        "stat_card_announcement_seconds": {
+          "name": "stat_card_announcement_seconds",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 8
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.question_sets": {
+      "name": "question_sets",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "event_id": {
+          "name": "event_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
+          "type": "varchar(128)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "order_index": {
+          "name": "order_index",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "question_sets_event_id_events_id_fk": {
+          "name": "question_sets_event_id_events_id_fk",
+          "tableFrom": "question_sets",
+          "tableTo": "events",
+          "columnsFrom": [
+            "event_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.questions": {
+      "name": "questions",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "set_id": {
+          "name": "set_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "prompt": {
+          "name": "prompt",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "answer_definition": {
+          "name": "answer_definition",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "matching_mode": {
+          "name": "matching_mode",
+          "type": "matching_mode",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'NORMALIZED'"
+        },
+        "time_limit_seconds": {
+          "name": "time_limit_seconds",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "mapped_card": {
+          "name": "mapped_card",
+          "type": "power_up_card",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "top_n": {
+          "name": "top_n",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 1
+        },
+        "order_index": {
+          "name": "order_index",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "questions_set_id_question_sets_id_fk": {
+          "name": "questions_set_id_question_sets_id_fk",
+          "tableFrom": "questions",
+          "tableTo": "question_sets",
+          "columnsFrom": [
+            "set_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.round_configs": {
+      "name": "round_configs",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "event_id": {
+          "name": "event_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "game_phase": {
+          "name": "game_phase",
+          "type": "game_phase",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "round_number": {
+          "name": "round_number",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "stat_card": {
+          "name": "stat_card",
+          "type": "stat_card",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "timer_seconds": {
+          "name": "timer_seconds",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "round_configs_event_id_events_id_fk": {
+          "name": "round_configs_event_id_events_id_fk",
+          "tableFrom": "round_configs",
+          "tableTo": "events",
+          "columnsFrom": [
+            "event_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "round_configs_event_phase_number_unique": {
+          "name": "round_configs_event_phase_number_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "event_id",
+            "game_phase",
+            "round_number"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.sessions": {
+      "name": "sessions",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "user_id": {
+          "name": "user_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "token_hash": {
+          "name": "token_hash",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "expires_at": {
+          "name": "expires_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "revoked_at": {
+          "name": "revoked_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "sessions_user_id_users_id_fk": {
+          "name": "sessions_user_id_users_id_fk",
+          "tableFrom": "sessions",
+          "tableTo": "users",
+          "columnsFrom": [
+            "user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "sessions_token_hash_unique": {
+          "name": "sessions_token_hash_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "token_hash"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.teams": {
+      "name": "teams",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "user_id": {
+          "name": "user_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
+          "type": "varchar(128)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "tag": {
+          "name": "tag",
+          "type": "varchar(32)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "teams_user_id_users_id_fk": {
+          "name": "teams_user_id_users_id_fk",
+          "tableFrom": "teams",
+          "tableTo": "users",
+          "columnsFrom": [
+            "user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "teams_user_id_unique": {
+          "name": "teams_user_id_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "user_id"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.users": {
+      "name": "users",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "identifier": {
+          "name": "identifier",
+          "type": "varchar(128)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "password_hash": {
+          "name": "password_hash",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "role": {
+          "name": "role",
+          "type": "user_role",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "enabled": {
+          "name": "enabled",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "users_identifier_unique": {
+          "name": "users_identifier_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "identifier"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    }
+  },
+  "enums": {
+    "public.clash_penalty_mode": {
+      "name": "clash_penalty_mode",
+      "schema": "public",
+      "values": [
+        "FIXED_X",
+        "TWO_THIRDS_OF_PICK"
+      ]
+    },
+    "public.degenerate_round_mode": {
+      "name": "degenerate_round_mode",
+      "schema": "public",
+      "values": [
+        "NO_TARGET",
+        "CLASH_PENALTIES_ONLY"
+      ]
+    },
+    "public.display_rounding": {
+      "name": "display_rounding",
+      "schema": "public",
+      "values": [
+        "HALF_UP",
+        "TRUNCATE"
+      ]
+    },
+    "public.equality_mode": {
+      "name": "equality_mode",
+      "schema": "public",
+      "values": [
+        "EXACT",
+        "ROUND_TARGET_TO_INTEGER",
+        "EPSILON"
+      ]
+    },
+    "public.event_status": {
+      "name": "event_status",
+      "schema": "public",
+      "values": [
+        "DRAFT",
+        "READY",
+        "LIVE",
+        "FINISHED"
+      ]
+    },
+    "public.game_phase": {
+      "name": "game_phase",
+      "schema": "public",
+      "values": [
+        "A",
+        "B"
+      ]
+    },
+    "public.majority_penalty_mode": {
+      "name": "majority_penalty_mode",
+      "schema": "public",
+      "values": [
+        "FIXED_X",
+        "HALF_ABS_DISTANCE",
+        "HALF_SIGNED_DISTANCE"
+      ]
+    },
+    "public.matching_mode": {
+      "name": "matching_mode",
+      "schema": "public",
+      "values": [
+        "EXACT",
+        "NORMALIZED",
+        "NUMERIC"
+      ]
+    },
+    "public.no_pick_behaviour": {
+      "name": "no_pick_behaviour",
+      "schema": "public",
+      "values": [
+        "SCORE_ZERO",
+        "EXCLUDE",
+        "AUTO_RANDOM"
+      ]
+    },
+    "public.power_up_card": {
+      "name": "power_up_card",
+      "schema": "public",
+      "values": [
+        "SHIELD",
+        "RESERVE",
+        "PEEK",
+        "REVERSE"
+      ]
+    },
+    "public.rapid_fire_tie_break": {
+      "name": "rapid_fire_tie_break",
+      "schema": "public",
+      "values": [
+        "EARLIEST_RECEIVED_THEN_ID",
+        "SHARE"
+      ]
+    },
+    "public.reversed_majority_reward": {
+      "name": "reversed_majority_reward",
+      "schema": "public",
+      "values": [
+        "PICK",
+        "OTHER"
+      ]
+    },
+    "public.sample_stddev_single": {
+      "name": "sample_stddev_single",
+      "schema": "public",
+      "values": [
+        "ZERO",
+        "NO_TARGET"
+      ]
+    },
+    "public.stat_card": {
+      "name": "stat_card",
+      "schema": "public",
+      "values": [
+        "MEAN",
+        "TWO_THIRDS",
+        "MIDRANGE",
+        "MEAN_PLUS_SIGMA",
+        "GEOMETRIC_MEAN"
+      ]
+    },
+    "public.std_dev_mode": {
+      "name": "std_dev_mode",
+      "schema": "public",
+      "values": [
+        "POPULATION",
+        "SAMPLE"
+      ]
+    },
+    "public.user_role": {
+      "name": "user_role",
+      "schema": "public",
+      "values": [
+        "admin",
+        "team"
+      ]
+    }
+  },
+  "schemas": {},
+  "sequences": {},
+  "roles": {},
+  "policies": {},
+  "views": {},
+  "_meta": {
+    "columns": {},
+    "schemas": {},
+    "tables": {}
+  }
+}

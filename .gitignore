@@ -2,6 +2,7 @@
 .env
 .env.local
 .env.*.local
+.pgdata/
 
 # Source rule documents (keep out of public remotes if desired; local copies live in docs/source/)
 # Uncomment if you must not commit source .docx files:

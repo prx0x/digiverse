@@ -431,6 +431,41 @@
   width: 100%;
 }
 
+.textarea {
+  min-height: calc(var(--size-touch-min) * 2);
+  resize: vertical;
+  font-family: var(--font-body);
+}
+
+.form-grid {
+  display: grid;
+  gap: var(--space-3);
+  grid-template-columns: 1fr;
+}
+
+@media (min-width: 768px) {
+  .form-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.form-grid--3 {
+  grid-template-columns: 1fr;
+}
+
+@media (min-width: 768px) {
+  .form-grid--3 {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+.issue-list {
+  margin: 0;
+  padding-left: var(--space-5);
+  color: var(--color-danger);
+  font-size: var(--font-size-sm);
+}
+
 .input:disabled,
 .select:disabled {
   background: var(--color-disabled-bg);

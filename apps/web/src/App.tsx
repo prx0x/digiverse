@@ -2,8 +2,13 @@ import { Navigate, Route, Routes } from 'react-router-dom';
 import { AdminLayout } from '@/layouts/AdminLayout';
 import { AuthLayout } from '@/layouts/AuthLayout';
 import { TeamLayout } from '@/layouts/TeamLayout';
+import { AdminCardMappingPage } from '@/pages/AdminCardMappingPage';
 import { AdminDashboardPage } from '@/pages/AdminDashboardPage';
+import { AdminQuestionsPage } from '@/pages/AdminQuestionsPage';
+import { AdminRoundsPage } from '@/pages/AdminRoundsPage';
 import { AdminSectionPage } from '@/pages/AdminSectionPage';
+import { AdminSettingsPage } from '@/pages/AdminSettingsPage';
+import { AdminTeamsPage } from '@/pages/AdminTeamsPage';
 import { GalleryPage } from '@/pages/GalleryPage';
 import { InventoryPage } from '@/pages/InventoryPage';
 import { LeaderboardPage } from '@/pages/LeaderboardPage';
@@ -40,6 +45,11 @@ export function App() {
         <Route element={<ProtectedRoute requiredRole="admin" />}>
           <Route path="/admin" element={<AdminLayout />}>
             <Route index element={<AdminDashboardPage />} />
+            <Route path="teams" element={<AdminTeamsPage />} />
+            <Route path="questions" element={<AdminQuestionsPage />} />
+            <Route path="card-mapping" element={<AdminCardMappingPage />} />
+            <Route path="rounds" element={<AdminRoundsPage />} />
+            <Route path="settings" element={<AdminSettingsPage />} />
             <Route path=":sectionId" element={<AdminSectionPage />} />
           </Route>
         </Route>

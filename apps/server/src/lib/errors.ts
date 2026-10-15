@@ -29,3 +29,7 @@ export function notFound(message = 'Not found'): AppError {
 export function conflict(message: string): AppError {
   return new AppError(409, 'CONFLICT', message);
 }
+
+export function configLocked(message = 'Event configuration is locked'): AppError {
+  return new AppError(409, 'CONFIG_LOCKED', message);
+}

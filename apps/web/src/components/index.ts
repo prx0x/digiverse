@@ -4,6 +4,7 @@ export { Badge } from './Badge';
 export { Button } from './Button';
 export { IconButton } from './IconButton';
 export { Input } from './Input';
+export { Textarea } from './Textarea';
 export { Modal } from './Modal';
 export { Panel } from './Panel';
 export { PowerUpCard } from './PowerUpCard';

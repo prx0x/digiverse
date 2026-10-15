@@ -1,23 +1,23 @@
 # PROGRESS.md — Live Project Status
 
 **Last updated:** 2026-10-15
-**Updated by:** Build Phase 2 implementation agent
+**Updated by:** Build Phase 3 implementation agent
 
 > Rule: the coding agent MUST update this file after every meaningful implementation milestone (task finished, test result changed, blocker found/cleared, phase status changed). Mark an item `[x]` only after verifying it in the repository, and record the evidence (command + result). Never mark work complete on the basis of a plan.
 
 Status legend: `NOT STARTED` · `IN PROGRESS` · `BLOCKED` · `COMPLETE`
 
 ## Current active Build Phase
-**Build Phase 3 — Admin Panel and Event Configuration** (status: `NOT STARTED` — ready to begin)
+**Build Phase 4 — Rapid-Fire Gameplay and Power-Up Acquisition** (status: `NOT STARTED` — ready to begin)
 
-Repository state: pnpm monorepo with `apps/web` + `apps/server` + `packages/shared`. Postgres running via Docker; migrations applied; real session-based auth and RBAC active across backend and frontend.
+Repository state: pnpm monorepo with `apps/web` + `apps/server` + `packages/shared`. Postgres running; migrations 0000 and 0001 applied; real session-based auth and RBAC active; full admin event configuration UI & API operational; 16 test suites passing cleanly across the workspace.
 
 ## Phase overview
 | Build Phase | Title | Status |
 |---|---|---|
 | 1 | Project Foundation and Basic UI Layout | COMPLETE |
 | 2 | Backend Foundation, Database, Authentication, and Roles | COMPLETE |
-| 3 | Admin Panel and Event Configuration | NOT STARTED |
+| 3 | Admin Panel and Event Configuration | COMPLETE |
 | 4 | Rapid-Fire Gameplay and Power-Up Acquisition | NOT STARTED |
 | 5 | Main Game Engine and Scoring | NOT STARTED (gated by OPEN_RULE_DECISIONS.md) |
 | 6 | Leaderboard, Integration, Testing, Security, and Deployment | NOT STARTED |
@@ -58,7 +58,7 @@ Repository state: pnpm monorepo with `apps/web` + `apps/server` + `packages/shar
 - [x] Backend scaffold + config validation + health check
   - Evidence: Fastify 5 + Zod typed config loader (`config.ts`), structured pino logging with credential redaction, `/health` endpoint returning `{ status: "ok", app: "Digiverse" }`. Unit tests in `config.test.ts` passing.
 - [x] Database schema + migrations
-  - Evidence: PostgreSQL 16 Alpine container, Drizzle ORM schema (`schema.ts`) with `user_role` enum, `users`, `teams`, `sessions`. Migration `0000_empty_joseph.sql` generated and applied via `pnpm db:migrate`.
+  - Evidence: PostgreSQL, Drizzle ORM schema (`schema.ts`) with `user_role` enum, `users`, `teams`, `sessions`. Migration `0000_empty_joseph.sql` generated and applied via `pnpm db:migrate`.
 - [x] Password hashing; admin bootstrap from env
   - Evidence: argon2id hashing with constant-time equality check (`password.ts`, `password.test.ts`). Idempotent admin bootstrapping (`bootstrap.ts`) using `ADMIN_BOOTSTRAP_USER_ID` and `ADMIN_BOOTSTRAP_PASSWORD`. Passwords never logged.
 - [x] Login/logout/session; role-based access control middleware
@@ -72,13 +72,23 @@ Repository state: pnpm monorepo with `apps/web` + `apps/server` + `packages/shar
 - [x] Access-control tests; `API_SURFACE_SUMMARY.md` updated
   - Evidence: Monorepo test suite passes (23/23 tests: 5 in `@digiverse/shared`, 6 in `@digiverse/web`, 12 in `@digiverse/server`). `API_SURFACE_SUMMARY.md` updated with all 10 endpoints.
 
-## Build Phase 3 — Admin Panel & Event Configuration (NOT STARTED)
-- [ ] Team management UI (list, create, password reset, disable/enable)
-- [ ] Questions + question sets CRUD
-- [ ] Card ↔ question mapping; top-N award setting; supply validation
-- [ ] Round counts per game phase; stat card per round
-- [ ] Event settings (timers, rule-configuration record from OPEN_RULE_DECISIONS.md)
-- [ ] Persistence + validation + tests
+## Build Phase 3 — Admin Panel & Event Configuration (COMPLETE)
+- [x] Team management UI (list, create, password reset, disable/enable)
+  - Evidence: `apps/web/src/pages/AdminTeamsPage.tsx` connected to `/api/v1/admin/teams*` endpoints; live create modal, reset modal, toggle disable/enable.
+- [x] Questions + question sets CRUD
+  - Evidence: Drizzle tables `question_sets`, `questions`; API endpoints `POST/PATCH/DELETE /admin/question-sets` and `POST/PATCH/DELETE /admin/questions`; UI in `AdminQuestionsPage.tsx` with prompt, answer, matching mode, time limits.
+- [x] Card ↔ question mapping; top-N award setting; supply validation
+  - Evidence: `apps/web/src/pages/AdminCardMappingPage.tsx` with question mapping to power-up card, topN awards, and supply caps. Backend validates `validateAwardedVsSupply`, enforcing Reserve supply == 1 (`validateCardSupplyMap`).
+- [x] Round counts per game phase; stat card per round
+  - Evidence: `apps/web/src/pages/AdminRoundsPage.tsx` configuring Game Phase A round count, Game Phase B round count, default timers, and per-round stat cards (Mean, Two-thirds, Midrange, Mean+1σ, Geometric mean). Tested in `eventConfig.test.ts`.
+- [x] Event settings (timers, rule-configuration record from OPEN_RULE_DECISIONS.md)
+  - Evidence: `apps/web/src/pages/AdminSettingsPage.tsx` and `event_rules` table with 23 validated fields resolving OPEN-001..014. Organiser-editable penalty X values supported and editable while LIVE.
+- [x] Lifecycle state machine & locking
+  - Evidence: `DRAFT` → `READY` → `LIVE` → `FINISHED`. `assertDraft` locks configuration at READY and LIVE (except permitted rulebook X fields). Readiness evaluator checks all prerequisites before allowing READY.
+- [x] Admin dashboard & routing integration
+  - Evidence: `AdminDashboardPage.tsx` displaying live event status, readiness checklist, and metric summaries; all admin routes wired in `App.tsx` (`/admin/teams`, `/admin/questions`, `/admin/card-mapping`, `/admin/rounds`, `/admin/settings`).
+- [x] Persistence + validation + tests
+  - Evidence: Migration `0001_many_preak.sql` applied. 16 tests passing across monorepo (`eventConfig.test.ts`, `app.test.ts`, etc.). `typecheck`, `lint`, and `build` pass clean.
 
 ## Build Phase 4 — Rapid Fire & Power-Up Acquisition (NOT STARTED)
 - [ ] Question delivery + server-timed submissions
@@ -106,16 +116,19 @@ Repository state: pnpm monorepo with `apps/web` + `apps/server` + `packages/shar
 ## Completed work
 - Documentation scaffold (AGENT, MEMORY, PROGRESS, API, plan, OPEN rules, README, env example).
 - **Build Phase 1 application scaffold:** monorepo, Bauhaus tokens, component library, MOCK screens, gallery, formatScore + tests.
-- **Build Phase 2 backend & auth foundation:** Fastify server, PostgreSQL + Drizzle ORM migrations, argon2 password hashing, admin bootstrap, session management with CSRF protection, RBAC middleware, admin team provisioning API, rate limiting, React auth context and route guards, 23/23 unit and integration tests passing.
+- **Build Phase 2 backend & auth foundation:** Fastify server, PostgreSQL + Drizzle ORM migrations, argon2 password hashing, admin bootstrap, session management with CSRF protection, RBAC middleware, admin team provisioning API, rate limiting, React auth context and route guards, unit and integration tests passing.
+- **Build Phase 3 admin panel & event configuration:** Event lifecycle state machine (`DRAFT` → `READY` → `LIVE` → `FINISHED`), database schema and migration `0001_many_preak.sql`, backend endpoints for event bundle, rules, card supply, rounds, question sets and questions; UI pages for Team Management, Questions & Sets, Card Mapping & Supply, Rounds & Stat Cards, Event Settings & Disputed Rules, and Admin Dashboard; typecheck, lint, build, and tests verified green.
 
 ## Current blockers
-- Organiser decisions pending for items in `OPEN_RULE_DECISIONS.md` (do **not** block Build Phases 3–4; **do** block Build Phase 5).
+- Organiser decisions pending for items in `OPEN_RULE_DECISIONS.md` (all 23 options are now configurable via Admin Settings UI; do **not** block Build Phase 4; **do** block Build Phase 5).
 - Official GDGoC IIIT Kota logo asset not supplied (text wordmark in use).
 
 ## Next concrete tasks
-1. Start Build Phase 3: implement the Admin Panel UI for Team Management (connected to `/api/v1/admin/teams`).
-2. Implement schema and CRUD endpoints for Questions, Question Sets, and Card Mappings.
-3. Continue collecting organiser input on `OPEN_RULE_DECISIONS.md` in parallel.
+1. Proceed to **Build Phase 4: Rapid-Fire Gameplay and Power-Up Acquisition**:
+   - Implement state machine for rapid fire (`IDLE` → `QUESTION_OPEN` → `CLOSED` → `AWARDED`).
+   - Implement real-time question delivery and server-timed answer submissions.
+   - Implement answer evaluation, top-N ranking, and transactional card inventory allocation.
+   - Replace mocks on team rapid-fire screen and inventory views.
 
 ## Change log
 | Date | Change | By |
@@ -123,3 +136,4 @@ Repository state: pnpm monorepo with `apps/web` + `apps/server` + `packages/shar
 | 2026-10-15 | Initial documentation set created | doc-generation task |
 | 2026-10-15 | Build Phase 1 scaffold + UI foundation implemented; scripts verified | implementing agent |
 | 2026-10-15 | Build Phase 2 backend, DB migrations, auth, RBAC, frontend auth integration & tests complete | implementing agent |
+| 2026-10-15 | Build Phase 3 admin panel, event configuration API, lifecycle locking, UI pages, and tests complete | implementing agent |

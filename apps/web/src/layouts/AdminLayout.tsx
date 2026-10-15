@@ -16,7 +16,7 @@ export function AdminLayout() {
   return (
     <div className="shell shell--admin">
       <div className="mock-banner" role="note">
-        LIVE AUTH (Phase 2) — Signed in as Admin ({user?.identifier}). Section controls mock until Phase 3.
+        PHASE 3 ACTIVE — Signed in as Admin ({user?.identifier}). Event configuration & management live.
       </div>
       <header className="shell__header">
         <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)' }}>
