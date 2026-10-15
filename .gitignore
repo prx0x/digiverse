@@ -1,0 +1,35 @@
+# Secrets / local env
+.env
+.env.local
+.env.*.local
+
+# Source rule documents (keep out of public remotes if desired; local copies live in docs/source/)
+# Uncomment if you must not commit source .docx files:
+# docs/source/*.docx
+
+# Dependencies & build
+node_modules/
+dist/
+build/
+coverage/
+*.tsbuildinfo
+
+# Tooling caches
+.eslintcache
+.turbo/
+.vite/
+playwright-report/
+test-results/
+
+# OS / editor
+.DS_Store
+Thumbs.db
+*.swp
+.idea/
+.vscode/*
+!.vscode/extensions.json
+
+# Logs
+*.log
+npm-debug.log*
+pnpm-debug.log*

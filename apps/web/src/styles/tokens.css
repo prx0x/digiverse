@@ -1,0 +1,121 @@
+/**
+ * Digiverse Bauhaus design tokens — single source of truth for colour, type,
+ * spacing, borders, shapes, motion, z-index, and component states.
+ * Components must use these variables; never hardcode hex/sizes.
+ */
+
+:root {
+  /* --- Colour (Bauhaus primary set) --------------------------------------- */
+  --color-red: #e30613;
+  --color-yellow: #f5d700;
+  --color-blue: #0055a4;
+  --color-black: #0a0a0a;
+  --color-off-white: #f4f2ec;
+
+  /* Semantic roles */
+  --color-bg: var(--color-off-white);
+  --color-fg: var(--color-black);
+  --color-primary: var(--color-blue);
+  --color-primary-fg: var(--color-off-white);
+  --color-danger: var(--color-red);
+  --color-danger-fg: var(--color-off-white);
+  --color-highlight: var(--color-yellow);
+  --color-highlight-fg: var(--color-black);
+  --color-muted: color-mix(in srgb, var(--color-black) 55%, var(--color-off-white));
+  --color-border: var(--color-black);
+  --color-surface: var(--color-off-white);
+  --color-surface-inverse: var(--color-black);
+  --color-focus-ring: var(--color-blue);
+  --color-disabled-bg: color-mix(in srgb, var(--color-black) 12%, var(--color-off-white));
+  --color-disabled-fg: color-mix(in srgb, var(--color-black) 40%, var(--color-off-white));
+
+  /* Tile / palette states */
+  --color-tile-default-bg: var(--color-off-white);
+  --color-tile-selected-bg: var(--color-yellow);
+  --color-tile-locked-bg: var(--color-blue);
+  --color-tile-locked-fg: var(--color-off-white);
+  --color-tile-disabled-bg: var(--color-disabled-bg);
+  --color-tile-reserved-bg: var(--color-red);
+  --color-tile-reserved-fg: var(--color-off-white);
+
+  /* --- Typography --------------------------------------------------------- */
+  --font-display: 'Archivo Black', 'Arial Black', sans-serif;
+  --font-body: 'IBM Plex Sans', 'Helvetica Neue', Arial, sans-serif;
+  --font-mono: 'IBM Plex Mono', ui-monospace, monospace;
+
+  --font-size-xs: 0.75rem; /* 12 */
+  --font-size-sm: 0.875rem; /* 14 */
+  --font-size-md: 1rem; /* 16 */
+  --font-size-lg: 1.25rem; /* 20 */
+  --font-size-xl: 1.75rem; /* 28 */
+  --font-size-2xl: 2.5rem; /* 40 */
+  --font-size-3xl: 3.5rem; /* 56 */
+
+  --line-height-tight: 1.1;
+  --line-height-snug: 1.25;
+  --line-height-normal: 1.5;
+
+  --font-weight-regular: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+
+  --letter-spacing-display: 0.02em;
+  --font-variant-numeric: tabular-nums;
+
+  /* --- Spacing (4px base) ------------------------------------------------- */
+  --space-0: 0;
+  --space-1: 0.25rem; /* 4 */
+  --space-2: 0.5rem; /* 8 */
+  --space-3: 0.75rem; /* 12 */
+  --space-4: 1rem; /* 16 */
+  --space-5: 1.5rem; /* 24 */
+  --space-6: 2rem; /* 32 */
+  --space-7: 3rem; /* 48 */
+  --space-8: 4rem; /* 64 */
+
+  /* Touch / hit targets */
+  --size-touch-min: 2.75rem; /* 44px */
+
+  /* --- Borders & shapes --------------------------------------------------- */
+  --border-width-thin: 1px;
+  --border-width-md: 2px;
+  --border-width-thick: 4px;
+  --radius-none: 0;
+  --radius-sm: 2px; /* minimal Bauhaus radius */
+  --shadow-hard: 4px 4px 0 var(--color-black);
+
+  /* --- Motion ------------------------------------------------------------- */
+  --duration-instant: 0ms;
+  --duration-fast: 120ms;
+  --duration-normal: 240ms;
+  --duration-slow: 480ms;
+  --easing-standard: cubic-bezier(0.2, 0, 0, 1);
+  --easing-emphasized: cubic-bezier(0.2, 0, 0, 1.2);
+
+  /* --- Z-index ------------------------------------------------------------ */
+  --z-base: 0;
+  --z-sticky: 100;
+  --z-dropdown: 200;
+  --z-modal: 300;
+  --z-toast: 400;
+  --z-focus: 500;
+
+  /* --- Layout ------------------------------------------------------------- */
+  --grid-columns: 12;
+  --grid-gutter: var(--space-4);
+  --page-max-width: 90rem; /* 1440 */
+  --header-height: 3.5rem;
+  --sidebar-width: 14rem;
+
+  /* Breakpoints documented as custom media via comments:
+     phone ~360, tablet ~768, laptop ~1280, desktop ~1920 */
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --duration-fast: 0ms;
+    --duration-normal: 0ms;
+    --duration-slow: 0ms;
+  }
+}
