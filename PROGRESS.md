@@ -8,7 +8,7 @@
 Status legend: `NOT STARTED` · `IN PROGRESS` · `BLOCKED` · `COMPLETE`
 
 ## Current active Build Phase
-**Build Phase 5 — Main Game Engine and Scoring** (status: `NOT STARTED` — gated by OPEN_RULE_DECISIONS.md)
+**Build Phase 5 — Main Game Engine and Scoring** (status: `COMPLETE`)
 
 Repository state: pnpm monorepo with `apps/web` + `apps/server` + `packages/shared`. Postgres running; migrations 0000, 0001, and 0002 applied; real session-based auth and RBAC active; admin event configuration operational; Game Phase A (Rapid Fire) lifecycle, submissions, answer evaluation, ranking, transactional card awards, and team inventory operational with WebSocket / realtime updates; 18 test suites passing cleanly across the workspace.
 
@@ -19,7 +19,7 @@ Repository state: pnpm monorepo with `apps/web` + `apps/server` + `packages/shar
 | 2 | Backend Foundation, Database, Authentication, and Roles | COMPLETE |
 | 3 | Admin Panel and Event Configuration | COMPLETE |
 | 4 | Rapid-Fire Gameplay and Power-Up Acquisition | COMPLETE |
-| 5 | Main Game Engine and Scoring | NOT STARTED (gated by OPEN_RULE_DECISIONS.md) |
+| 5 | Main Game Engine and Scoring | COMPLETE |
 | 6 | Leaderboard, Integration, Testing, Security, and Deployment | NOT STARTED |
 
 ## Build Phase 1 — Foundation & Basic UI (COMPLETE)
@@ -111,17 +111,37 @@ Repository state: pnpm monorepo with `apps/web` + `apps/server` + `packages/shar
   - [x] Audit records exist and are admin-readable (`RapidFireAdminState`).
   - [x] Typecheck, lint, build, and tests verified green.
 
-## Build Phase 5 — Main Game Engine & Scoring (NOT STARTED — GATED)
-- [ ] Gate: every "Blocks Build Phase 5 = Yes" item in `OPEN_RULE_DECISIONS.md` resolved or configurable
-- [ ] Pure game-engine package: stats, clashes, buckets, scoring (decimal arithmetic)
-- [ ] Round state machine + timers
-- [ ] Randomised palettes per team/round; Reserve; Peek; Shield; Reverse
-- [ ] Score ledger + audit; transaction boundaries
-- [ ] Engine unit tests and integration tests
+## Build Phase 5 — Main Game Engine & Scoring (COMPLETE)
+- [x] Gate: every "Blocks Build Phase 5 = Yes" item in `OPEN_RULE_DECISIONS.md` resolved or configurable
+  - Evidence: OPEN-020/021/022 encoded as config-driven defaults read from `event_rules`; no hard-block remaining.
+- [x] Pure game-engine package: stats, clashes, buckets, scoring (decimal arithmetic)
+  - Evidence: `packages/game-engine` created with `decimal.js@^10.4.3` (precision 60, ROUND_HALF_UP). Modules: `statistics.ts` (MEAN, TWO_THIRDS, MIDRANGE, MEAN_PLUS_SIGMA, GEOMETRIC_MEAN), `clashes.ts`, `bucketing.ts` (EXACT/ROUND_TARGET_TO_INTEGER/EPSILON modes), `scoring.ts` (full Game Phase B scoring: Shield, Reverse parity, no-pick penalty, degenerate rounds, clashes), `palette.ts` (Mulberry32 PRNG + Fisher-Yates), `cards.ts`, `stateMachine.ts`.
+- [x] Round state machine + timers
+  - Evidence: `LOBBY` → `SELECTION` → `CLASH_RESOLUTION` → `CALCULATION` → `BUCKETING` → `SCORING` → `RESULT`; `canTransitionRound()` / `assertValidTransition()` in `stateMachine.ts`; server-authoritative timestamps for lobby/selection start and close.
+- [x] Randomised palettes per team/round; Reserve; Peek; Shield; Reverse
+  - Evidence: `generateShuffledPalette(seed)` deterministic per team/round; all 4 card plays fully implemented in `gameRoundService.ts` — Shield (pre-round lobby), Reserve (auto-pick + anonymous broadcast), Peek (during selection, strict < 50, own pick excluded), Reverse (during selection, flips majority/minority parity).
+- [x] Score ledger + audit; transaction boundaries
+  - Evidence: Append-only `score_ledger` table (`ROUND_SCORE`, `NO_PICK_PENALTY`, `STARTING_POINTS`, `VOID_REVERSAL` component types); `round_audit_logs` for all state transitions; `resolveAndScoreRound()` wraps engine call + ledger inserts in a single Drizzle transaction; `voidRound()` rolls back ledger entries.
+- [x] Engine unit tests and integration tests
+  - Evidence: 24 unit tests in `packages/game-engine/src/engine.test.ts` (all passing); 3 server integration tests in `apps/server/src/gameEngine.test.ts` covering full round lifecycle, card plays, timer extension, and void/rollback.
+- [x] Round lifecycle API (admin + team routes)
+  - Evidence: `apps/server/src/routes/gameRounds.ts` — 15 endpoints: `POST /admin/rounds/start`, `POST /admin/rounds/:id/open-selection`, `POST /admin/rounds/:id/resolve`, `POST /admin/rounds/:id/extend-timer`, `POST /admin/rounds/:id/void`, `GET /admin/rounds/current`, `GET /admin/rounds/:id/state`, `GET /leaderboard`, `GET /admin/leaderboard`, `GET /rounds/current`, `GET /rounds/:id`, `POST /rounds/current/pick`, `POST /rounds/current/cards/play`.
+- [x] Leaderboard + live admin view
+  - Evidence: `getLeaderboard()` ranked by cumulative score with tiebreakers (positive rounds, cards held); `LeaderboardPage.tsx` live; `AdminRoundsPage.tsx` live controller with start/open/resolve/extend/void and real-time submissions table.
+- [x] Frontend wired (RoundPage, LeaderboardPage, AdminRoundsPage)
+  - Evidence: `apps/web/src/api/rounds.ts` typed API client; `RoundPage.tsx` stat card, palette, 2-step pick confirmation, card plays, result reveal; `LeaderboardPage.tsx` tiebreaker columns; `AdminRoundsPage.tsx` controller panel.
+- [x] Wordmark upgraded to official GDGoC SVG logo (OPEN-025 resolved)
+  - Evidence: `Wordmark.tsx` with `variant` prop (`left-aligned`/`centered`/`bracket`), loads `/assets/gdgoc-*.svg` with text fallback on load failure.
+- **Acceptance evidence:**
+  - [x] 60 tests across 11 test suites, all passing (24 engine unit, 3 server integration game, 13 web, 20 server existing).
+  - [x] `pnpm typecheck` clean across all packages.
+  - [x] `pnpm lint` clean across all packages.
+  - [x] `pnpm build` succeeds; web bundle produced.
+  - [x] Score ledger sum matches expected values for shield/reverse/no-pick scenarios (verified in `gameEngine.test.ts`).
 
 ## Build Phase 6 — Leaderboard, Integration, Testing, Security, Deployment (NOT STARTED)
 - [ ] Leaderboard (4-dp) + live admin monitor
-- [ ] Real-time sync + reconnection behaviour
+- [ ] Real-time sync + reconnection behaviour (WebSocket push for `round:lobby`, `round:selection_opened`, `round:result` events — server-side calls exist; frontend currently polls)
 - [ ] E2E from account creation to final leaderboard
 - [ ] Security hardening + dependency audit
 - [ ] Responsive + accessibility audit
@@ -133,16 +153,20 @@ Repository state: pnpm monorepo with `apps/web` + `apps/server` + `packages/shar
 - **Build Phase 2 backend & auth foundation:** Fastify server, PostgreSQL + Drizzle ORM migrations, argon2 password hashing, admin bootstrap, session management with CSRF protection, RBAC middleware, admin team provisioning API, rate limiting, React auth context and route guards, unit and integration tests passing.
 - **Build Phase 3 admin panel & event configuration:** Event lifecycle state machine (`DRAFT` → `READY` → `LIVE` → `FINISHED`), database schema and migration `0001_many_preak.sql`, backend endpoints for event bundle, rules, card supply, rounds, question sets and questions; UI pages for Team Management, Questions & Sets, Card Mapping & Supply, Rounds & Stat Cards, Event Settings & Disputed Rules, and Admin Dashboard; typecheck, lint, build, and tests verified green.
 - **Build Phase 4 rapid-fire gameplay & power-up acquisition:** Complete Game Phase A loop: `rapid_fire_sessions`, `rapid_fire_submissions`, `team_cards`, `rapid_fire_awards` (migration `0002_neat_shen.sql`); pure answer evaluation and timestamp-based ranking in `@digiverse/shared`; admin controls (`start`, `close`, `award`, `state`); team submission with server-timed validation, attempt limits, and answer secrecy; real-time WebSocket connection (`/ws`); live team `RapidFirePage`, `InventoryPage`, and `AdminRapidFirePage` controller; all tests passing.
+- **Build Phase 5 main game engine & scoring:** `packages/game-engine` (pure, decimal.js, 24 unit tests); DB migration `0003_hot_captain_stacy.sql` (`game_rounds`, `round_palettes`, `round_picks`, `round_card_plays`, `score_ledger`, `round_audit_logs`); `gameRoundService.ts` and `gameRounds.ts` routes (15 endpoints); live `RoundPage`, `LeaderboardPage`, `AdminRoundsPage` controller; GDGoC logo `Wordmark`; 60 tests passing.
 
 ## Current blockers
-- Organiser decisions pending for items in `OPEN_RULE_DECISIONS.md` (all 23 options are now configurable via Admin Settings UI; do **not** block Build Phase 4; **do** block Build Phase 5: items OPEN-020, OPEN-021, OPEN-022).
-- Official GDGoC IIIT Kota logo asset not supplied (text wordmark in use).
+- No hard blockers for Build Phase 6.
+- WebSocket real-time push for Game Phase B events: server broadcasts `round:lobby`, `round:selection_opened`, `round:result` but the frontend currently polls via `setInterval`. Full push will be wired in Phase 6.
+- Official GDGoC IIIT Kota logo asset: `Wordmark.tsx` loads from `/assets/gdgoc-*.svg` with text fallback — ensure assets are present in `apps/web/public/assets/` before production build.
 
 ## Next concrete tasks
-1. Gate check for **Build Phase 5: Main Game Engine and Scoring**:
-   - Verify resolution of items OPEN-020, OPEN-021, and OPEN-022 with organizers, or encode their configured defaults into the game engine.
-   - Scaffold `packages/game-engine` using `decimal.js` for pure rational/exact statistical computations without intermediate float rounding.
-   - Implement round state machine: `LOBBY` → `SELECTION` → `CLASH_RESOLUTION` → `CALCULATION` → `BUCKETING` → `SCORING` → `RESULT`.
+1. Begin **Build Phase 6: Leaderboard, Integration, Testing, Security, and Deployment**:
+   - Wire WebSocket real-time push for Game Phase B events on the frontend (`round:lobby`, `round:selection_opened`, `round:result`).
+   - Playwright E2E test suite: full team flow from login → rapid fire → round play → leaderboard.
+   - Security audit: CSP headers, dependency audit (`pnpm audit`), secrets scanning.
+   - Responsive + accessibility audit (WCAG AA, keyboard navigation, mobile safe-area).
+   - Deployment configuration (`Dockerfile`, reverse proxy config, environment variable docs).
 
 ## Change log
 | Date | Change | By |
@@ -152,3 +176,5 @@ Repository state: pnpm monorepo with `apps/web` + `apps/server` + `packages/shar
 | 2026-10-15 | Build Phase 2 backend, DB migrations, auth, RBAC, frontend auth integration & tests complete | implementing agent |
 | 2026-10-15 | Build Phase 3 admin panel, event configuration API, lifecycle locking, UI pages, and tests complete | implementing agent |
 | 2026-10-16 | Build Phase 4 Rapid-Fire gameplay, evaluation, awards, inventory, WebSocket, and UI complete | implementing agent |
+| 2026-10-16 | Build Phase 5 pure game engine (packages/game-engine), DB migration 0003, round lifecycle API (15 endpoints), RoundPage/LeaderboardPage/AdminRoundsPage live, GDGoC logo Wordmark; 60 tests passing | implementing agent |
+

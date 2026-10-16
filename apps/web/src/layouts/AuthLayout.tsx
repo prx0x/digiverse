@@ -6,7 +6,7 @@ export function AuthLayout() {
   return (
     <div className="auth-layout">
       <div className="auth-layout__card">
-        <Wordmark to="/" />
+        <Wordmark to="/" variant="centered" />
         <Outlet />
       </div>
     </div>

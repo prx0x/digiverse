@@ -11,6 +11,7 @@ import { attachAuth, ensureCsrfCookie } from './plugins/auth.js';
 import { adminEventRoutes } from './routes/adminEvent.js';
 import { adminTeamRoutes } from './routes/adminTeams.js';
 import { authRoutes } from './routes/auth.js';
+import { gameRoundRoutes } from './routes/gameRounds.js';
 import { healthRoutes } from './routes/health.js';
 import { rapidFireRoutes } from './routes/rapidFire.js';
 import { teamRoutes } from './routes/teams.js';
@@ -145,6 +146,7 @@ export async function buildApp({ config, db }: BuildAppOptions) {
       await api.register(adminEventRoutes);
       await api.register(teamRoutes);
       await api.register(rapidFireRoutes);
+      await api.register(gameRoundRoutes);
     },
     { prefix: '/api/v1' },
   );

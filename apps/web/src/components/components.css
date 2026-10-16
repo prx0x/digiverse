@@ -835,8 +835,25 @@
   color: var(--color-muted);
 }
 
-.wordmark--inverse .wordmark__org {
-  color: color-mix(in srgb, var(--color-off-white) 70%, transparent);
+.wordmark__logo {
+  height: 24px;
+  width: auto;
+  max-width: 220px;
+  object-fit: contain;
+}
+
+.wordmark--centered {
+  align-items: center;
+  text-align: center;
+}
+
+.wordmark--centered .wordmark__logo {
+  height: 36px;
+  max-width: 280px;
+}
+
+.wordmark--bracket .wordmark__logo {
+  height: 28px;
 }
 
 /* --- Mock banner ---------------------------------------------------------- */

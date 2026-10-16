@@ -71,6 +71,13 @@ export function AdminDashboardPage() {
       status: 'Live API',
     },
     {
+      id: 'live-round',
+      title: 'Live Round Controller',
+      blurb: `Start, open selection, resolve and void Game Phase B rounds. Live pick submissions board.`,
+      accent: 'red' as const,
+      status: 'Live API',
+    },
+    {
       id: 'live',
       title: 'Live Monitor',
       blurb: 'Real-time pick and connection monitor for event gameplay.',
@@ -82,7 +89,7 @@ export function AdminDashboardPage() {
       title: 'Leaderboard',
       blurb: 'Public and admin score display rounded strictly to 4 decimal places.',
       accent: 'blue' as const,
-      status: 'Phase 6',
+      status: 'Live API',
     },
   ];
 
@@ -95,7 +102,7 @@ export function AdminDashboardPage() {
           </Badge>
           <h1 className="page-header__title">{event.name} — Control Centre</h1>
           <p className="page-header__meta">
-            Build Phase 3 live event configuration and administration.
+            Live event administration — Phases 1–5 complete.
           </p>
         </div>
         <StatusPill

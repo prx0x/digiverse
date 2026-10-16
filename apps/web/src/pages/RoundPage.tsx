@@ -1,129 +1,429 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
+import type { StatCard } from '@digiverse/shared';
 import {
   Badge,
   Button,
+  EmptyState,
+  ErrorState,
+  LoadingState,
   Panel,
   ScoreDisplay,
   StatCardFace,
   StatusPill,
   Stepper,
+  Table,
   Tile,
   type TileState,
   Timer,
 } from '@/components';
-import { MOCK_ROUND, MOCK_ROUND_RESULT, shuffleNumbers } from '@/mocks';
+import {
+  getRoundCurrentApi,
+  playCardApi,
+  submitPickApi,
+  type TeamRoundView,
+} from '@/api/rounds';
 
-type Phase = 'announce' | 'palette' | 'result';
+const STAT_CARD_INFO: Record<
+  StatCard,
+  { title: string; formula: string; description: string }
+> = {
+  MEAN: {
+    title: 'Arithmetic Mean',
+    formula: 'μ = (∑ xᵢ) / N',
+    description: 'Average of all unique non-conflicting picks submitted.',
+  },
+  TWO_THIRDS: {
+    title: 'Two-thirds of the Mean',
+    formula: '(2/3) × μ',
+    description: 'Two-thirds of the arithmetic mean of all non-conflicting picks.',
+  },
+  MIDRANGE: {
+    title: 'Midrange',
+    formula: '(min + max) / 2',
+    description: 'Midpoint between the lowest and highest unique non-conflicting picks.',
+  },
+  MEAN_PLUS_SIGMA: {
+    title: 'Mean + 1σ',
+    formula: 'μ + σ',
+    description: 'Arithmetic mean plus one population standard deviation.',
+  },
+  GEOMETRIC_MEAN: {
+    title: 'Geometric Mean',
+    formula: '(∏ xᵢ)^(1/N)',
+    description: 'The N-th root of the product of all unique non-conflicting picks.',
+  },
+};
 
 export function RoundPage() {
-  const [phase, setPhase] = useState<Phase>('announce');
-  const [seed, setSeed] = useState(() => Date.now());
+  const [data, setData] = useState<TeamRoundView | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [selected, setSelected] = useState<number | null>(null);
-  const [locked, setLocked] = useState(false);
+  const [confirming, setConfirming] = useState(false);
+  const [actionBusy, setActionBusy] = useState(false);
+  const [actionError, setActionError] = useState<string | null>(null);
+  const [actionMessage, setActionMessage] = useState<string | null>(null);
+  const [reserveInput, setReserveInput] = useState<number>(50);
 
-  const numbers = useMemo(() => shuffleNumbers(seed), [seed]);
-
-  const tileState = (n: number): TileState => {
-    if (n === 7) return 'reserved';
-    if (n === 13 || n === 99) return 'disabled';
-    if (locked && selected === n) return 'locked';
-    if (selected === n) return 'selected';
-    return 'default';
-  };
-
-  function reshuffle() {
-    setSeed(Date.now());
-    setSelected(null);
-    setLocked(false);
+  async function loadCurrentRound() {
+    try {
+      const res = await getRoundCurrentApi();
+      setData(res);
+      setError(null);
+      if (res.myPick?.pick) {
+        setSelected(res.myPick.pick);
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to load round');
+    } finally {
+      setLoading(false);
+    }
   }
 
-  if (phase === 'result') {
+  useEffect(() => {
+    void loadCurrentRound();
+    const interval = setInterval(() => {
+      void loadCurrentRound();
+    }, 1500);
+    return () => clearInterval(interval);
+  }, []);
+
+  if (loading && !data) return <LoadingState title="Loading round status" />;
+
+  if (error && !data) {
+    return (
+      <ErrorState
+        title="Could not load round"
+        description={error}
+        actionLabel="Retry"
+        onAction={() => {
+          setLoading(true);
+          void loadCurrentRound();
+        }}
+      />
+    );
+  }
+
+  if (!data?.active || !data.round) {
     return (
       <div className="stack">
-        <RoundHeader />
-        <div className="asymmetric">
-          <Panel title="Round result" accent="blue">
-            <p>Your pick: {MOCK_ROUND_RESULT.ownPick}</p>
-            <p>Target: {MOCK_ROUND_RESULT.target}</p>
-            <p>Bucket: {MOCK_ROUND_RESULT.bucket}</p>
-            <p>
-              Score delta: <ScoreDisplay value={MOCK_ROUND_RESULT.scoreDelta} size="sm" />
-            </p>
-            <Button onClick={() => setPhase('announce')}>Replay announcement</Button>
-          </Panel>
-          <Panel title="Breakdown" accent="red">
-            <ul>
-              <li>Exact match: {MOCK_ROUND_RESULT.components.exactMatch}</li>
-              <li>Minority: {MOCK_ROUND_RESULT.components.minority}</li>
-              <li>Majority: {MOCK_ROUND_RESULT.components.majority}</li>
-              <li>Clash: {MOCK_ROUND_RESULT.components.clash}</li>
-            </ul>
-          </Panel>
-        </div>
+        <header className="page-header">
+          <div>
+            <Badge tone="yellow">LOBBY</Badge>
+            <h1 className="page-header__title">Main Game — Game Phase B</h1>
+            <p className="page-header__meta">Waiting for round to start</p>
+          </div>
+        </header>
+        <EmptyState
+          title="Round Has Not Started"
+          description="The admin will launch the round soon. When launched, the formula will appear here."
+        />
       </div>
     );
   }
 
-  const showPalette = phase === 'palette';
+  const round = data.round;
+  const isLobby = round.status === 'LOBBY';
+  const isSelection = round.status === 'SELECTION';
+  const isResult = round.status === 'RESULT';
+
+  const cardInfo = STAT_CARD_INFO[round.statCard] ?? STAT_CARD_INFO.MEAN;
+  const isLocked = Boolean(data.myPick?.isLocked);
+
+  async function handleLockIn() {
+    if (selected === null || isLocked) return;
+    setActionBusy(true);
+    setActionError(null);
+    try {
+      await submitPickApi(selected);
+      setConfirming(false);
+      await loadCurrentRound();
+      setActionMessage(`Pick #${selected} locked successfully!`);
+    } catch (err) {
+      setActionError(err instanceof Error ? err.message : 'Failed to lock pick');
+    } finally {
+      setActionBusy(false);
+    }
+  }
+
+  async function handlePlayCard(cardType: import('@digiverse/shared').PowerUpCard, reservedNum?: number) {
+    setActionBusy(true);
+    setActionError(null);
+    try {
+      const res = await playCardApi(cardType, reservedNum);
+      await loadCurrentRound();
+      if (cardType === 'PEEK') {
+        const count = res.metadata?.peekCount ?? 0;
+        setActionMessage(`Peek snapshot: exactly ${count} picks strictly under 50 submitted so far!`);
+      } else {
+        setActionMessage(`${cardType} played successfully!`);
+      }
+    } catch (err) {
+      setActionError(err instanceof Error ? err.message : `Failed to play ${cardType}`);
+    } finally {
+      setActionBusy(false);
+    }
+  }
+
+  const tileState = (n: number): TileState => {
+    if (data.reservedNumbers.includes(n)) return 'reserved';
+    if (isLocked && selected === n) return 'locked';
+    if (selected === n) return 'selected';
+    return 'default';
+  };
+
+  if (isResult && data.result) {
+    return (
+      <div className="stack">
+        <header className="page-header">
+          <div>
+            <Badge tone="blue">ROUND {round.roundNumber} COMPLETE</Badge>
+            <h1 className="page-header__title">Round {round.roundNumber} Result</h1>
+            <p className="page-header__meta">{cardInfo.title}</p>
+          </div>
+          <div className="row">
+            <span style={{ fontWeight: 600 }}>Score:</span>
+            <ScoreDisplay value={data.currentScore} size="md" />
+          </div>
+        </header>
+
+        <div className="asymmetric">
+          <Panel title="Outcome" accent="blue">
+            <div className="stack" style={{ gap: 'var(--space-2)' }}>
+              <p>
+                <strong>Statistical Target:</strong>{' '}
+                <span style={{ fontSize: 'var(--font-size-lg)', fontWeight: 'bold' }}>
+                  {data.result.displayTarget ?? 'No Target (Degenerate)'}
+                </span>
+              </p>
+              <p>
+                <strong>Your Locked Pick:</strong>{' '}
+                {data.myPick ? (
+                  <Badge tone="yellow">#{data.myPick.pick}</Badge>
+                ) : (
+                  <Badge tone="red">No pick submitted</Badge>
+                )}
+              </p>
+              {data.result.isReversed ? (
+                <p>
+                  <Badge tone="red">Reverse in Effect</Badge> (Majority & Minority scoring flipped)
+                </p>
+              ) : null}
+            </div>
+          </Panel>
+
+          <Panel title="Score Ledger Entries" accent="yellow">
+            {data.result.ledgerEntries.length > 0 ? (
+              <ul className="stack" style={{ gap: 'var(--space-2)' }}>
+                {data.result.ledgerEntries.map((e, idx) => (
+                  <li key={idx}>
+                    <strong>{e.component}:</strong>{' '}
+                    <span
+                      style={{
+                        color: e.pointsDelta.startsWith('-')
+                          ? 'var(--color-danger)'
+                          : 'var(--color-fg)',
+                        fontWeight: 'bold',
+                      }}
+                    >
+                      {e.pointsDelta.startsWith('-') ? e.pointsDelta : `+${e.pointsDelta}`}
+                    </span>{' '}
+                    — {e.reason}
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p>No score change for this round.</p>
+            )}
+          </Panel>
+        </div>
+
+        {/* Revealed picks per OPEN-029 */}
+        {data.result.revealedPicks && data.result.revealedPicks.length > 0 ? (
+          <Panel title="Revealed Picks (All Teams)" accent="yellow">
+            <Table headers={['Team Name', 'Pick Value']} caption="Revealed Picks">
+              {data.result.revealedPicks.map((rp) => (
+                <tr key={rp.teamId}>
+                  <td>{rp.teamName}</td>
+                  <td>
+                    <Badge tone="yellow">#{rp.pick}</Badge>
+                  </td>
+                </tr>
+              ))}
+            </Table>
+          </Panel>
+        ) : null}
+      </div>
+    );
+  }
 
   return (
     <div className="stack">
-      <RoundHeader showTimer={showPalette} />
+      <header className="page-header">
+        <div>
+          <Badge tone={isLobby ? 'yellow' : isSelection ? 'blue' : 'black'}>
+            ROUND {round.roundNumber} · {round.status}
+          </Badge>
+          <h1 className="page-header__title">Round {round.roundNumber}</h1>
+          <p className="page-header__meta">{cardInfo.title}</p>
+        </div>
+        <div className="row">
+          <Stepper total={5} current={round.roundNumber} />
+          {isSelection ? (
+            <Timer seconds={round.selectionSeconds} />
+          ) : isLobby ? (
+            <Timer seconds={round.lobbySeconds} />
+          ) : null}
+        </div>
+      </header>
+
+      {actionError ? (
+        <p role="alert" style={{ color: 'var(--color-danger)', fontWeight: 600 }}>
+          {actionError}
+        </p>
+      ) : null}
+      {actionMessage ? (
+        <p role="status" style={{ color: 'var(--color-blue)', fontWeight: 600 }}>
+          {actionMessage}
+        </p>
+      ) : null}
 
       <div
         className={[
           'stat-to-palette',
-          showPalette ? 'stat-to-palette--show-palette' : 'stat-to-palette--show-card',
+          isSelection ? 'stat-to-palette--show-palette' : 'stat-to-palette--show-card',
         ].join(' ')}
       >
+        {/* Stat Card Side */}
         <div className="stat-to-palette__card stack">
           <StatCardFace
-            title={MOCK_ROUND.statCard.title}
-            formula={MOCK_ROUND.statCard.formula}
-            description={MOCK_ROUND.statCard.description}
-            variant={MOCK_ROUND.statCard.id}
+            title={cardInfo.title}
+            formula={cardInfo.formula}
+            description={cardInfo.description}
+            variant={round.statCard}
           />
-          <div className="row">
-            <Button onClick={() => setPhase('palette')}>Reveal palette</Button>
-            <Button variant="secondary" onClick={() => setPhase('result')}>
-              Skip to result
-            </Button>
-          </div>
+
+          {isLobby ? (
+            <Panel title="Lobby Card Play (Pre-Round)" accent="yellow">
+              <p>Shield and Reserve can only be played during Lobby before selection opens.</p>
+              <div className="row" style={{ flexWrap: 'wrap', gap: 'var(--space-2)' }}>
+                {data.myCardPlayed ? (
+                  <Badge tone="yellow">Card Played: {data.myCardPlayed.cardType}</Badge>
+                ) : (
+                  <>
+                    <Button
+                      disabled={data.inventory.SHIELD <= 0 || actionBusy}
+                      onClick={() => handlePlayCard('SHIELD')}
+                    >
+                      Play Shield ({data.inventory.SHIELD})
+                    </Button>
+
+                    {data.inventory.RESERVE > 0 ? (
+                      <div className="row" style={{ alignItems: 'center' }}>
+                        <input
+                          type="number"
+                          min={1}
+                          max={100}
+                          value={reserveInput}
+                          onChange={(e) => setReserveInput(Number(e.target.value))}
+                          style={{ width: '80px', padding: '6px' }}
+                        />
+                        <Button
+                          disabled={actionBusy}
+                          onClick={() => handlePlayCard('RESERVE', reserveInput)}
+                        >
+                          Reserve Number
+                        </Button>
+                      </div>
+                    ) : null}
+                  </>
+                )}
+              </div>
+            </Panel>
+          ) : null}
         </div>
 
+        {/* Palette Side */}
         <div className="stat-to-palette__palette stack">
-          <Panel accent="yellow" title="Number palette 1–100">
-            <p>
-              Arrangement is shuffled per team/round (MOCK client shuffle). Use New arrangement to
-              demonstrate a different layout.
-            </p>
-            <div className="row">
-              <StatusPill
-                status={locked ? 'done' : 'live'}
-                label={locked ? 'Pick locked' : 'Selecting'}
-              />
-              <Button variant="secondary" onClick={reshuffle}>
-                New arrangement
-              </Button>
-              <Button onClick={() => setLocked(true)} disabled={selected === null || locked}>
-                Lock in
-              </Button>
-              <Button variant="ghost" onClick={() => setPhase('announce')}>
-                Back to card
-              </Button>
-              <Button variant="secondary" onClick={() => setPhase('result')}>
-                View result
-              </Button>
+          <Panel accent="yellow" title="Number Palette 1–100">
+            <div className="row" style={{ justifyContent: 'space-between', alignItems: 'center' }}>
+              <div className="row" style={{ alignItems: 'center' }}>
+                <StatusPill
+                  status={isLocked ? 'done' : selected !== null ? 'live' : 'waiting'}
+                  label={isLocked ? `Locked in #${selected}` : selected !== null ? `Selected #${selected}` : 'Pick a number'}
+                />
+                {round.isReversed ? (
+                  <Badge tone="red">REVERSE ACTIVE ({round.reverseCount})</Badge>
+                ) : null}
+              </div>
+
+              {/* During-round card options */}
+              {isSelection && !data.myCardPlayed ? (
+                <div className="row">
+                  {data.inventory.PEEK > 0 ? (
+                    <Button
+                      variant="secondary"
+                      disabled={actionBusy}
+                      onClick={() => handlePlayCard('PEEK')}
+                    >
+                      Play Peek ({data.inventory.PEEK})
+                    </Button>
+                  ) : null}
+
+                  {data.inventory.REVERSE > 0 ? (
+                    <Button
+                      variant="danger"
+                      disabled={actionBusy}
+                      onClick={() => handlePlayCard('REVERSE')}
+                    >
+                      Play Reverse ({data.inventory.REVERSE})
+                    </Button>
+                  ) : null}
+                </div>
+              ) : null}
             </div>
+
+            {/* Lock in confirmation step per OPEN-014 */}
+            {!isLocked && selected !== null ? (
+              <div
+                className="row"
+                style={{
+                  marginTop: 'var(--space-2)',
+                  padding: 'var(--space-2)',
+                  background: 'var(--color-bg-subtle)',
+                  borderRadius: '2px',
+                }}
+              >
+                {confirming ? (
+                  <>
+                    <span>Are you sure? Once locked, your pick cannot be changed!</span>
+                    <Button variant="danger" disabled={actionBusy} onClick={handleLockIn}>
+                      Yes, Lock #{selected}!
+                    </Button>
+                    <Button variant="ghost" onClick={() => setConfirming(false)}>
+                      Cancel
+                    </Button>
+                  </>
+                ) : (
+                  <Button onClick={() => setConfirming(true)}>
+                    Lock in #{selected}
+                  </Button>
+                )}
+              </div>
+            ) : null}
           </Panel>
+
           <div className="palette-grid" role="group" aria-label="Number palette">
-            {numbers.map((n) => (
+            {data.myPalette.map((n) => (
               <Tile
-                key={`${seed}-${n}`}
+                key={n}
                 value={n}
                 state={tileState(n)}
                 onClick={() => {
-                  if (!locked) setSelected(n);
+                  if (!isLocked && !data.reservedNumbers.includes(n)) {
+                    setSelected(n);
+                    setConfirming(false);
+                  }
                 }}
               />
             ))}
@@ -140,34 +440,30 @@ export function RoundPage() {
                   {selected !== null ? selected : '—'}
                 </span>
               </div>
-              <Timer seconds={MOCK_ROUND.selectionSeconds} />
+              <Timer seconds={round.selectionSeconds} />
             </div>
             <Button
-              variant={locked ? 'secondary' : 'primary'}
-              disabled={selected === null || locked}
-              onClick={() => setLocked(true)}
+              variant={isLocked ? 'secondary' : 'primary'}
+              disabled={selected === null || isLocked || actionBusy}
+              onClick={() => {
+                if (confirming) {
+                  void handleLockIn();
+                } else {
+                  setConfirming(true);
+                }
+              }}
             >
-              {locked ? 'Locked' : selected !== null ? `Lock #${selected}` : 'Pick a number'}
+              {isLocked
+                ? `Locked #${selected}`
+                : confirming
+                  ? `Confirm #${selected}?`
+                  : selected !== null
+                    ? `Lock #${selected}`
+                    : 'Pick a number'}
             </Button>
           </aside>
         </div>
       </div>
     </div>
-  );
-}
-
-function RoundHeader({ showTimer = false }: { showTimer?: boolean }) {
-  return (
-    <header className="page-header">
-      <div>
-        <Badge tone="yellow">MOCK</Badge>
-        <h1 className="page-header__title">Round {MOCK_ROUND.roundNumber}</h1>
-        <p className="page-header__meta">{MOCK_ROUND.phaseLabel}</p>
-      </div>
-      <div className="row">
-        <Stepper total={MOCK_ROUND.totalRounds} current={MOCK_ROUND.roundNumber} />
-        {showTimer ? <Timer seconds={MOCK_ROUND.selectionSeconds} /> : null}
-      </div>
-    </header>
   );
 }

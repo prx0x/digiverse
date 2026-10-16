@@ -68,7 +68,7 @@ Information classes used in all docs:
 | Web | React 19 + Vite 6 + TypeScript (strict) | `apps/web` |
 | Shared utils/types | TypeScript package | `packages/shared` (`formatScore` live) |
 | Server | Node.js + Fastify 5 + TypeScript + Drizzle ORM | `apps/server` (implemented in Build Phase 2) |
-| Game engine | Pure TS + `decimal.js` | **deferred to Build Phase 5** (`packages/game-engine` not created yet) |
+| Game engine | Pure TS + `decimal.js` | **COMPLETE** — `packages/game-engine` created in Build Phase 5; workspace dependency of both `apps/server` and `apps/web` |
 | Database | PostgreSQL 16 + Drizzle ORM | `docker-compose.yml`, `apps/server/src/db/schema.ts` |
 | Real-time | WebSocket (or SSE) | Build Phase 4+ |
 | Unit tests | Vitest | `apps/web`, `apps/server`, `packages/shared` |

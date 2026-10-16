@@ -91,19 +91,52 @@
   - `team_cards` table: `id (uuid pk)`, `event_id (uuid fk events.id cascade)`, `team_id (uuid fk teams.id cascade)`, `card_type (power_up_card)`, `acquired_from (varchar 32 default 'RAPID_FIRE')`, `question_id (uuid fk questions.id nullable)`, `used_in_round_id (uuid nullable)`, `created_at`.
   - `rapid_fire_awards` table: `id (uuid pk)`, `session_id (uuid fk rapid_fire_sessions.id cascade)`, `team_id (uuid fk teams.id cascade)`, `card_type (power_up_card)`, `rank (int)`, `received_at`, `reason (text)`, `created_at`.
 
+### 2.5 Main game (Game Phase B) — Build Phase 5
+
+| Method | Path | Purpose | Auth | Request | Response | Errors | Side effects | Phase | Tests |
+|---|---|---|---|---|---|---|---|---|---|
+| `POST` | `/api/v1/admin/rounds/start` | Start a new game round (generates per-team palettes) | ADMIN (CSRF required) | `{ roundConfigId?: string, isPractice?: boolean }` | `{ round }` | `400`, `401`, `403`, `409 CONFLICT` | Creates `game_rounds` + `round_palettes` rows, writes `STARTING_POINTS` ledger entries on round 1, broadcasts `round:lobby` | 5 | `gameEngine.test.ts` |
+| `POST` | `/api/v1/admin/rounds/:id/open-selection` | Advance round from LOBBY to SELECTION | ADMIN (CSRF required) | None | `{ round }` | `400`, `401`, `403`, `404`, `409` | Updates status, broadcasts `round:selection_opened` | 5 | `gameEngine.test.ts` |
+| `POST` | `/api/v1/admin/rounds/:id/resolve` | Score round: run engine, write ledger | ADMIN (CSRF required) | None | `{ round, results }` | `400`, `401`, `403`, `404`, `409` | Runs `scoreRound()`, inserts `score_ledger` entries in transaction, broadcasts `round:result` | 5 | `gameEngine.test.ts` |
+| `POST` | `/api/v1/admin/rounds/:id/extend-timer` | Extend selection timer by N seconds | ADMIN (CSRF required) | `{ extraSeconds: number }` | `{ round }` | `400`, `401`, `403`, `404`, `409` | Updates `selection_seconds` | 5 | `gameEngine.test.ts` |
+| `POST` | `/api/v1/admin/rounds/:id/void` | Void round and reverse all ledger entries | ADMIN (CSRF required) | None | `{ ok: true }` | `400`, `401`, `403`, `404`, `409` | Inserts `VOID_REVERSAL` ledger entries, marks round `ABORTED`, restores used cards | 5 | `gameEngine.test.ts` |
+| `GET` | `/api/v1/admin/rounds/current` | Admin view of current active round | ADMIN | None | `AdminRoundState` (all teams' picks, cards) | `401`, `403` | None | 5 | — |
+| `GET` | `/api/v1/admin/rounds/:id/state` | Admin full state snapshot for a round | ADMIN | None | `AdminRoundState` | `401`, `403`, `404` | None | 5 | — |
+| `GET` | `/api/v1/admin/leaderboard` | Admin leaderboard with full tiebreaker data | ADMIN | None | `{ teams: LeaderboardEntry[] }` | `401`, `403` | None | 5 | `gameEngine.test.ts` |
+| `GET` | `/api/v1/leaderboard` | Public leaderboard (AUTH) | AUTH | None | `{ teams: LeaderboardEntry[] }` | `401` | None | 5 | `gameEngine.test.ts` |
+| `GET` | `/api/v1/rounds/current` | Team view of current active round | TEAM | None | `TeamRoundView` (own palette, pick, card, result) | `401`, `403` | None | 5 | — |
+| `GET` | `/api/v1/rounds/:id` | Team view of a specific round | TEAM | None | `TeamRoundView` | `401`, `403`, `404` | None | 5 | — |
+| `POST` | `/api/v1/rounds/current/pick` | Submit team's number pick | TEAM (CSRF required) | `{ pick: number }` | `{ ok: true }` | `400 PICK_LOCKED`, `400 NOT_IN_SELECTION`, `400 RESERVED`, `401`, `403` | Inserts or updates `round_picks` row (no-change once locked) | 5 | `gameEngine.test.ts` |
+| `POST` | `/api/v1/rounds/current/cards/play` | Play a power-up card for current round | TEAM (CSRF required) | `{ card: 'SHIELD'\|'RESERVE'\|'PEEK'\|'REVERSE' }` | `{ ok: true, peekCount?: number }` | `400 INVALID_WINDOW`, `400 ALREADY_PLAYED`, `400 NO_CARD`, `401`, `403` | Marks `team_cards.used_in_round_id`, creates `round_card_plays` row; Shield/Reserve valid in LOBBY, Peek/Reverse valid in SELECTION | 5 | `gameEngine.test.ts` |
+
+### 2.6 Implemented pure engine package (`packages/game-engine`)
+- `@digiverse/game-engine` — pure TypeScript, no framework dependencies, `decimal.js@^10.4.3` (precision 60, ROUND_HALF_UP).
+- Modules: `statistics.ts` (5 stat card computations), `clashes.ts` (deterministic clash resolution), `bucketing.ts` (EXACT/ROUND_TARGET_TO_INTEGER/EPSILON equality modes), `scoring.ts` (full Game Phase B scoring — Shield, Reverse parity, no-pick penalty, degenerate rounds), `palette.ts` (Mulberry32 PRNG + Fisher-Yates shuffle), `cards.ts` (card validation + Peek evaluation), `stateMachine.ts` (round state transition guards).
+- Database migration `0003_hot_captain_stacy.sql`:
+  - Enums: `round_status` (`LOBBY`, `SELECTION`, `CLASH_RESOLUTION`, `CALCULATION`, `BUCKETING`, `SCORING`, `RESULT`, `ABORTED`), `score_ledger_component` (`STARTING_POINTS`, `ROUND_SCORE`, `NO_PICK_PENALTY`, `VOID_REVERSAL`).
+  - `game_rounds` table: id, event_id, round_number, stat_card, status, is_practice, lobby/selection/closed timestamps and durations, is_reversed, reverse_count, score_multiplier, timestamps.
+  - `round_palettes` table: per-team shuffled palette (JSON array + seed), indexed by (round_id, team_id).
+  - `round_picks` table: per-team pick record, is_locked flag, reserved_by_card flag, unique (round_id, team_id).
+  - `round_card_plays` table: per-team card play log, play_phase, payload (JSON), timestamps.
+  - `score_ledger` table: append-only per-team score deltas (decimal strings), component type, round reference.
+  - `round_audit_logs` table: append-only state transition records with payload JSON.
+
 ## 3. Planned surface (PROPOSAL — not implemented)
 
-Base path suggestion: `/api/v1`. Real-time channel: WebSocket `/ws` (authenticated by session cookie).
+Base path: `/api/v1`. Real-time channel: WebSocket `/ws` (authenticated by session cookie).
 
-### 3.1 Main game — Build Phase 5
-- Admin: `POST /admin/rounds/:id/open-lobby|open-selection|close-selection|resolve|publish-result`, `POST /admin/rounds/:id/abort`, `GET /admin/rounds/:id/live` (all picks, card plays, statuses).
-- Team: `GET /rounds/current` (stat card, state, timer, own palette order), `POST /rounds/:id/pick` (`{ number }`), `POST /rounds/:id/lock`, `POST /rounds/:id/cards/play` (`{ card: SHIELD|RESERVE|PEEK|REVERSE }`), `GET /rounds/:id/result` (own outcome; target/bucket info as permitted).
-- Peek response: `{ count: number }` only.
+### 3.1 Real-time events — Build Phase 6
+Server-side broadcasts already exist for Game Phase B; frontend currently polls. Phase 6 will wire frontend subscriptions:
+- `round:lobby` — broadcast on round start (palette ready, stat card)
+- `round:selection_opened` — broadcast when admin opens selection
+- `round:timer_sync` — periodic timer heartbeat
+- `round:card_played` — anonymous card play notification
+- `round:result` — full result broadcast after scoring
+- `leaderboard:updated` — after each resolved round
 
-### 3.2 Leaderboard — Build Phase 5/6
-- `GET /leaderboard` — AUTH — ranked teams with totals (decimal strings; UI formats to 4 dp).
-- `GET /admin/leaderboard` and `GET /admin/ledger?teamId=` — ADMIN — score ledger/audit.
+Implemented in Phase 4 (already wired end-to-end): `rapidfire:opened`, `rapidfire:closed`, `rapidfire:awarded`, `rapidfire:submission`, `ping`/`pong`.
 
-### 3.3 Real-time events
-Implemented in Phase 4: `rapidfire:opened`, `rapidfire:closed`, `rapidfire:awarded`, `rapidfire:submission`, `ping`/`pong`.
-Planned for Phase 5/6: `round.lobby`, `round.selection.opened`, `round.timer.sync`, `round.card.played`, `round.selection.closed`, `round.result`, `leaderboard.updated`.
+### 3.2 Phase 6 surface
+- E2E game audit trail (`GET /admin/audit?roundId=&teamId=`) — full pick, card, score ledger export.
+- Admin live monitor (`GET /admin/live`) — real-time connection count, submission status board.
+

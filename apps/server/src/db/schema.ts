@@ -58,6 +58,28 @@ export const rapidFireStatusEnum = pgEnum('rapid_fire_status', [
   'CLOSED',
   'AWARDED',
 ]);
+export const roundStatusEnum = pgEnum('round_status', [
+  'LOBBY',
+  'SELECTION',
+  'CLASH_RESOLUTION',
+  'CALCULATION',
+  'BUCKETING',
+  'SCORING',
+  'RESULT',
+  'ABORTED',
+]);
+export const scoreLedgerComponentEnum = pgEnum('score_ledger_component', [
+  'STARTING_POINTS',
+  'CLASH_PENALTY',
+  'MAJORITY_DEDUCTION',
+  'REVERSED_MINORITY_DEDUCTION',
+  'REVERSED_MAJORITY_AWARD',
+  'MINORITY_AWARD',
+  'EXACT_MATCH_AWARD',
+  'TIE_ZERO',
+  'NO_PICK_PENALTY',
+  'MANUAL_ADJUSTMENT',
+]);
 
 export const users = pgTable('users', {
   id: uuid('id').defaultRandom().primaryKey(),
@@ -265,6 +287,117 @@ export const rapidFireAwards = pgTable('rapid_fire_awards', {
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 });
 
+export const gameRounds = pgTable(
+  'game_rounds',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    eventId: uuid('event_id')
+      .notNull()
+      .references(() => events.id, { onDelete: 'cascade' }),
+    roundNumber: integer('round_number').notNull(),
+    statCard: statCardEnum('stat_card').notNull(),
+    status: roundStatusEnum('status').notNull().default('LOBBY'),
+    lobbySeconds: integer('lobby_seconds').notNull().default(15),
+    selectionSeconds: integer('selection_seconds').notNull().default(60),
+    lobbyStartedAt: timestamp('lobby_started_at', { withTimezone: true }),
+    selectionStartedAt: timestamp('selection_started_at', { withTimezone: true }),
+    closedAt: timestamp('closed_at', { withTimezone: true }),
+    targetValue: numeric('target_value', { precision: 20, scale: 10 }),
+    displayTarget: varchar('display_target', { length: 32 }),
+    isDegenerate: boolean('is_degenerate').notNull().default(false),
+    isPractice: boolean('is_practice').notNull().default(false),
+    scoreMultiplier: integer('score_multiplier').notNull().default(1),
+    reverseCount: integer('reverse_count').notNull().default(0),
+    isReversed: boolean('is_reversed').notNull().default(false),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [unique('game_rounds_event_number_unique').on(t.eventId, t.roundNumber)],
+);
+
+export const roundPalettes = pgTable(
+  'round_palettes',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    roundId: uuid('round_id')
+      .notNull()
+      .references(() => gameRounds.id, { onDelete: 'cascade' }),
+    teamId: uuid('team_id')
+      .notNull()
+      .references(() => teams.id, { onDelete: 'cascade' }),
+    paletteNumbers: text('palette_numbers').notNull(),
+    seed: varchar('seed', { length: 128 }).notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [unique('round_palettes_round_team_unique').on(t.roundId, t.teamId)],
+);
+
+export const roundPicks = pgTable(
+  'round_picks',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    roundId: uuid('round_id')
+      .notNull()
+      .references(() => gameRounds.id, { onDelete: 'cascade' }),
+    teamId: uuid('team_id')
+      .notNull()
+      .references(() => teams.id, { onDelete: 'cascade' }),
+    pick: integer('pick').notNull(),
+    isLocked: boolean('is_locked').notNull().default(true),
+    isReservePick: boolean('is_reserve_pick').notNull().default(false),
+    receivedAt: timestamp('received_at', { withTimezone: true }).notNull().defaultNow(),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [unique('round_picks_round_team_unique').on(t.roundId, t.teamId)],
+);
+
+export const roundCardPlays = pgTable(
+  'round_card_plays',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    roundId: uuid('round_id')
+      .notNull()
+      .references(() => gameRounds.id, { onDelete: 'cascade' }),
+    teamId: uuid('team_id')
+      .notNull()
+      .references(() => teams.id, { onDelete: 'cascade' }),
+    cardType: powerUpCardEnum('card_type').notNull(),
+    phase: varchar('phase', { length: 16 }).notNull(),
+    metadata: text('metadata'),
+    playedAt: timestamp('played_at', { withTimezone: true }).notNull().defaultNow(),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [unique('round_card_plays_round_team_unique').on(t.roundId, t.teamId)],
+);
+
+export const scoreLedger = pgTable('score_ledger', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  eventId: uuid('event_id')
+    .notNull()
+    .references(() => events.id, { onDelete: 'cascade' }),
+  roundId: uuid('round_id').references(() => gameRounds.id, { onDelete: 'cascade' }),
+  teamId: uuid('team_id')
+    .notNull()
+    .references(() => teams.id, { onDelete: 'cascade' }),
+  component: scoreLedgerComponentEnum('component').notNull(),
+  pointsDelta: numeric('points_delta', { precision: 20, scale: 10 }).notNull(),
+  balanceAfter: numeric('balance_after', { precision: 20, scale: 10 }).notNull(),
+  reason: text('reason'),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const roundAuditLogs = pgTable('round_audit_logs', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  eventId: uuid('event_id')
+    .notNull()
+    .references(() => events.id, { onDelete: 'cascade' }),
+  roundId: uuid('round_id').references(() => gameRounds.id, { onDelete: 'cascade' }),
+  action: varchar('action', { length: 64 }).notNull(),
+  adminUserId: uuid('admin_user_id').references(() => users.id, { onDelete: 'set null' }),
+  details: text('details'),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+});
+
 export const usersRelations = relations(users, ({ one, many }) => ({
   team: one(teams, { fields: [users.id], references: [teams.userId] }),
   sessions: many(sessions),
@@ -275,6 +408,10 @@ export const teamsRelations = relations(teams, ({ one, many }) => ({
   cards: many(teamCards),
   submissions: many(rapidFireSubmissions),
   awards: many(rapidFireAwards),
+  palettes: many(roundPalettes),
+  picks: many(roundPicks),
+  cardPlays: many(roundCardPlays),
+  ledger: many(scoreLedger),
 }));
 
 export const sessionsRelations = relations(sessions, ({ one }) => ({
@@ -288,6 +425,9 @@ export const eventsRelations = relations(events, ({ one, many }) => ({
   roundConfigs: many(roundConfigs),
   rapidFireSessions: many(rapidFireSessions),
   teamCards: many(teamCards),
+  gameRounds: many(gameRounds),
+  scoreLedger: many(scoreLedger),
+  roundAuditLogs: many(roundAuditLogs),
 }));
 
 export const eventRulesRelations = relations(eventRules, ({ one }) => ({
@@ -335,6 +475,42 @@ export const rapidFireAwardsRelations = relations(rapidFireAwards, ({ one }) => 
   team: one(teams, { fields: [rapidFireAwards.teamId], references: [teams.id] }),
 }));
 
+export const gameRoundsRelations = relations(gameRounds, ({ one, many }) => ({
+  event: one(events, { fields: [gameRounds.eventId], references: [events.id] }),
+  palettes: many(roundPalettes),
+  picks: many(roundPicks),
+  cardPlays: many(roundCardPlays),
+  ledger: many(scoreLedger),
+  auditLogs: many(roundAuditLogs),
+}));
+
+export const roundPalettesRelations = relations(roundPalettes, ({ one }) => ({
+  round: one(gameRounds, { fields: [roundPalettes.roundId], references: [gameRounds.id] }),
+  team: one(teams, { fields: [roundPalettes.teamId], references: [teams.id] }),
+}));
+
+export const roundPicksRelations = relations(roundPicks, ({ one }) => ({
+  round: one(gameRounds, { fields: [roundPicks.roundId], references: [gameRounds.id] }),
+  team: one(teams, { fields: [roundPicks.teamId], references: [teams.id] }),
+}));
+
+export const roundCardPlaysRelations = relations(roundCardPlays, ({ one }) => ({
+  round: one(gameRounds, { fields: [roundCardPlays.roundId], references: [gameRounds.id] }),
+  team: one(teams, { fields: [roundCardPlays.teamId], references: [teams.id] }),
+}));
+
+export const scoreLedgerRelations = relations(scoreLedger, ({ one }) => ({
+  event: one(events, { fields: [scoreLedger.eventId], references: [events.id] }),
+  round: one(gameRounds, { fields: [scoreLedger.roundId], references: [gameRounds.id] }),
+  team: one(teams, { fields: [scoreLedger.teamId], references: [teams.id] }),
+}));
+
+export const roundAuditLogsRelations = relations(roundAuditLogs, ({ one }) => ({
+  event: one(events, { fields: [roundAuditLogs.eventId], references: [events.id] }),
+  round: one(gameRounds, { fields: [roundAuditLogs.roundId], references: [gameRounds.id] }),
+  adminUser: one(users, { fields: [roundAuditLogs.adminUserId], references: [users.id] }),
+}));
+
 export type User = typeof users.$inferSelect;
 export type Team = typeof teams.$inferSelect;
 export type Session = typeof sessions.$inferSelect;
@@ -348,3 +524,9 @@ export type RapidFireSession = typeof rapidFireSessions.$inferSelect;
 export type RapidFireSubmission = typeof rapidFireSubmissions.$inferSelect;
 export type TeamCard = typeof teamCards.$inferSelect;
 export type RapidFireAward = typeof rapidFireAwards.$inferSelect;
+export type GameRound = typeof gameRounds.$inferSelect;
+export type RoundPalette = typeof roundPalettes.$inferSelect;
+export type RoundPick = typeof roundPicks.$inferSelect;
+export type RoundCardPlay = typeof roundCardPlays.$inferSelect;
+export type ScoreLedger = typeof scoreLedger.$inferSelect;
+export type RoundAuditLog = typeof roundAuditLogs.$inferSelect;
