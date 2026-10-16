@@ -128,6 +128,28 @@ export function RoundPage() {
               />
             ))}
           </div>
+
+          <div className="palette-spacer-for-bar" aria-hidden="true" />
+
+          {/* Mobile Sticky Selection Action Bar */}
+          <aside className="palette-sticky-bar" aria-label="Mobile number selection bar">
+            <div className="palette-sticky-bar__info">
+              <div className="palette-sticky-bar__pick">
+                <span>Pick:</span>
+                <span className="palette-sticky-bar__badge">
+                  {selected !== null ? selected : '—'}
+                </span>
+              </div>
+              <Timer seconds={MOCK_ROUND.selectionSeconds} />
+            </div>
+            <Button
+              variant={locked ? 'secondary' : 'primary'}
+              disabled={selected === null || locked}
+              onClick={() => setLocked(true)}
+            >
+              {locked ? 'Locked' : selected !== null ? `Lock #${selected}` : 'Pick a number'}
+            </Button>
+          </aside>
         </div>
       </div>
     </div>

@@ -76,6 +76,14 @@ select,
 textarea {
   font: inherit;
   color: inherit;
+  touch-action: manipulation;
+}
+
+input,
+select,
+textarea {
+  /* Prevent iOS Safari 16px zoom bug */
+  font-size: max(16px, 1rem);
 }
 
 :focus-visible {

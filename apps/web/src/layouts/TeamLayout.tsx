@@ -1,5 +1,6 @@
+import { useState } from 'react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
-import { Wordmark, Badge } from '@/components';
+import { Wordmark, Badge, Button, MobileDrawer } from '@/components';
 import { useAuth } from '@/context';
 import './layouts.css';
 
@@ -14,14 +15,20 @@ const links = [
 export function TeamLayout() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const [drawerOpen, setDrawerOpen] = useState(false);
 
   async function handleLogout() {
+    setDrawerOpen(false);
     await logout();
     navigate('/login');
   }
 
   const teamDisplayName = user?.team?.name || user?.identifier || 'Team';
   const teamTag = user?.team?.tag;
+
+  function closeDrawer() {
+    setDrawerOpen(false);
+  }
 
   return (
     <div className="shell">
@@ -33,7 +40,9 @@ export function TeamLayout() {
           <Wordmark to="/team" inverse />
           {teamTag && <Badge tone="yellow">{teamTag}</Badge>}
         </div>
-        <nav className="shell__nav" aria-label="Team">
+
+        {/* Desktop Navigation */}
+        <nav className="shell__nav shell__nav--desktop" aria-label="Team">
           {links.map((link) => (
             <NavLink key={link.to} to={link.to} end={link.end}>
               {link.label}
@@ -47,7 +56,7 @@ export function TeamLayout() {
             style={{
               background: 'none',
               border: 'none',
-              color: 'var(--color-ink-inverse)',
+              color: 'var(--color-primary-fg)',
               font: 'inherit',
               cursor: 'pointer',
               padding: 'var(--space-2) var(--space-3)',
@@ -56,10 +65,70 @@ export function TeamLayout() {
             Logout
           </button>
         </nav>
+
+        {/* Mobile Hamburger Button */}
+        <button
+          type="button"
+          className="hamburger-btn"
+          aria-label="Open navigation menu"
+          aria-expanded={drawerOpen}
+          onClick={() => setDrawerOpen(true)}
+        >
+          <svg
+            width="22"
+            height="22"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="3"
+            strokeLinecap="square"
+            aria-hidden="true"
+          >
+            <line x1="3" y1="6" x2="21" y2="6" />
+            <line x1="3" y1="12" x2="21" y2="12" />
+            <line x1="3" y1="18" x2="21" y2="18" />
+          </svg>
+        </button>
       </header>
+
+      {/* Slide-out Bauhaus Mobile Drawer */}
+      <MobileDrawer open={drawerOpen} onClose={closeDrawer} title="Team Menu">
+        <div className="drawer-team-info">
+          <div style={{ fontWeight: 700, fontSize: 'var(--font-size-md)' }}>{teamDisplayName}</div>
+          {teamTag && (
+            <div style={{ marginTop: 'var(--space-1)' }}>
+              <Badge tone="yellow">{teamTag}</Badge>
+            </div>
+          )}
+        </div>
+
+        <nav className="drawer-nav" aria-label="Mobile Team Navigation">
+          {links.map((link) => (
+            <NavLink key={link.to} to={link.to} end={link.end} onClick={closeDrawer}>
+              {link.label}
+            </NavLink>
+          ))}
+          {user?.role === 'admin' && (
+            <NavLink to="/admin" onClick={closeDrawer}>
+              Admin Panel
+            </NavLink>
+          )}
+          <NavLink to="/gallery" onClick={closeDrawer}>
+            Gallery
+          </NavLink>
+        </nav>
+
+        <div style={{ marginTop: 'auto', paddingTop: 'var(--space-4)' }}>
+          <Button variant="secondary" block onClick={handleLogout}>
+            Logout
+          </Button>
+        </div>
+      </MobileDrawer>
+
       <main className="shell__main">
         <Outlet />
       </main>
     </div>
   );
 }
+

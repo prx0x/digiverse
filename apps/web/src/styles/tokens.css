@@ -48,8 +48,8 @@
   --font-size-md: 1rem; /* 16 */
   --font-size-lg: 1.25rem; /* 20 */
   --font-size-xl: 1.75rem; /* 28 */
-  --font-size-2xl: 2.5rem; /* 40 */
-  --font-size-3xl: 3.5rem; /* 56 */
+  --font-size-2xl: clamp(1.75rem, 4vw + 0.75rem, 2.5rem); /* 28 -> 40 */
+  --font-size-3xl: clamp(2.25rem, 6vw + 0.75rem, 3.5rem); /* 36 -> 56 */
 
   --line-height-tight: 1.1;
   --line-height-snug: 1.25;
@@ -77,6 +77,12 @@
   /* Touch / hit targets */
   --size-touch-min: 2.75rem; /* 44px */
 
+  /* Safe area insets (notches, iOS home bars) */
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-left: env(safe-area-inset-left, 0px);
+  --safe-right: env(safe-area-inset-right, 0px);
+
   /* --- Borders & shapes --------------------------------------------------- */
   --border-width-thin: 1px;
   --border-width-md: 2px;
@@ -97,6 +103,7 @@
   --z-base: 0;
   --z-sticky: 100;
   --z-dropdown: 200;
+  --z-drawer: 250;
   --z-modal: 300;
   --z-toast: 400;
   --z-focus: 500;
@@ -107,9 +114,21 @@
   --page-max-width: 90rem; /* 1440 */
   --header-height: 3.5rem;
   --sidebar-width: 14rem;
+  --drawer-width: min(85vw, 20rem);
 
   /* Breakpoints documented as custom media via comments:
      phone ~360, tablet ~768, laptop ~1280, desktop ~1920 */
+}
+
+@media (max-width: 767px) {
+  :root {
+    --grid-gutter: var(--space-3);
+    --space-5: 1.25rem;
+    --space-6: 1.5rem;
+    --space-7: 2rem;
+    --space-8: 2.5rem;
+    --header-height: 3.25rem;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

@@ -42,7 +42,7 @@ Repository state: pnpm monorepo with `apps/web` + `apps/server` + `packages/shar
 - [x] Empty/loading/error/disconnected/waiting/completed states
   - Evidence: `StateViews.tsx` + gallery demos.
 - [x] Responsive breakpoints in CSS (phone/tablet/laptop/desktop) and a11y primitives (focus ring, ≥44px targets, aria on tiles/timers)
-  - Evidence: media queries at 768 / 1280; `--size-touch-min`; `:focus-visible`.
+  - Evidence: media queries at 768 / 1280; `--size-touch-min`; `:focus-visible`; slide-out Bauhaus side drawer (`MobileDrawer.tsx` + `MobileDrawer.test.tsx`), sticky mobile selection action bar on `RoundPage.tsx`, fluid typography (`clamp`), safe-area insets (`env(safe-area-inset-*)`). All 4 test suites passing.
 - [x] All mock data isolated and labelled `MOCK`
   - Evidence: `apps/web/src/mocks/`; MOCK banners on shells/screens.
 - [x] README / `.env.example` updated to match the real scaffold

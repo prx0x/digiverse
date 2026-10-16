@@ -29,3 +29,4 @@ export { Timer } from './Timer';
 export { Toast, ToastStack } from './Toast';
 export { Wordmark } from './Wordmark';
 export { ProtectedRoute } from './ProtectedRoute';
+export { MobileDrawer } from './MobileDrawer';
