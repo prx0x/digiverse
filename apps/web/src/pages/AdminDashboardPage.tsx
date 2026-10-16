@@ -82,7 +82,7 @@ export function AdminDashboardPage() {
       title: 'Live Monitor',
       blurb: 'Real-time pick and connection monitor for event gameplay.',
       accent: 'blue' as const,
-      status: 'Phase 6',
+      status: 'Live API',
     },
     {
       id: 'leaderboard',

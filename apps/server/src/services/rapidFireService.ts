@@ -274,6 +274,10 @@ export async function awardRapidFireQuestion(
     allocations,
   });
 
+  broadcastToAll('leaderboard:update', {
+    eventId: evt.id,
+  });
+
   return allocations;
 }
 

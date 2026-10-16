@@ -22,6 +22,7 @@ import {
   submitPickApi,
   type TeamRoundView,
 } from '@/api/rounds';
+import { useWebSocket } from '@/context';
 
 const STAT_CARD_INFO: Record<
   StatCard,
@@ -64,6 +65,7 @@ export function RoundPage() {
   const [actionError, setActionError] = useState<string | null>(null);
   const [actionMessage, setActionMessage] = useState<string | null>(null);
   const [reserveInput, setReserveInput] = useState<number>(50);
+  const { subscribe } = useWebSocket();
 
   async function loadCurrentRound() {
     try {
@@ -82,11 +84,26 @@ export function RoundPage() {
 
   useEffect(() => {
     void loadCurrentRound();
+
+    const unsubs = [
+      subscribe('round:lobby', () => void loadCurrentRound()),
+      subscribe('round:selection_opened', () => void loadCurrentRound()),
+      subscribe('round:number_reserved', () => void loadCurrentRound()),
+      subscribe('round:reverse_played', () => void loadCurrentRound()),
+      subscribe('round:result', () => void loadCurrentRound()),
+      subscribe('round:timer_extended', () => void loadCurrentRound()),
+      subscribe('round:voided', () => void loadCurrentRound()),
+    ];
+
     const interval = setInterval(() => {
       void loadCurrentRound();
-    }, 1500);
-    return () => clearInterval(interval);
-  }, []);
+    }, 3000);
+
+    return () => {
+      unsubs.forEach((unsub) => unsub());
+      clearInterval(interval);
+    };
+  }, [subscribe]);
 
   if (loading && !data) return <LoadingState title="Loading round status" />;
 

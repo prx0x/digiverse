@@ -12,6 +12,7 @@ import {
   Timer,
 } from '@/components';
 import { getRapidFireCurrentApi, submitRapidFireAnswerApi } from '@/api/rapidFire';
+import { useWebSocket } from '@/context';
 
 export function RapidFirePage() {
   const [data, setData] = useState<RapidFireTeamView | null>(null);
@@ -21,6 +22,7 @@ export function RapidFirePage() {
   const [submitting, setSubmitting] = useState(false);
   const [submitMessage, setSubmitMessage] = useState<string | null>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const { subscribe } = useWebSocket();
 
   async function loadState() {
     try {
@@ -36,12 +38,22 @@ export function RapidFirePage() {
 
   useEffect(() => {
     void loadState();
+
+    const unsubs = [
+      subscribe('rapidfire:opened', () => void loadState()),
+      subscribe('rapidfire:closed', () => void loadState()),
+      subscribe('rapidfire:awarded', () => void loadState()),
+    ];
+
     const interval = setInterval(() => {
       void loadState();
-    }, 2500);
+    }, 3500);
 
-    return () => clearInterval(interval);
-  }, []);
+    return () => {
+      unsubs.forEach((unsub) => unsub());
+      clearInterval(interval);
+    };
+  }, [subscribe]);
 
   async function onSubmit(e: FormEvent) {
     e.preventDefault();

@@ -131,6 +131,7 @@ export async function buildApp({ config, db }: BuildAppOptions) {
   await app.register(healthRoutes);
   await app.register(
     async (api) => {
+      await api.register(healthRoutes);
       await api.register(authRoutes);
       await api.register(adminTeamRoutes);
       await api.register(adminEventRoutes);

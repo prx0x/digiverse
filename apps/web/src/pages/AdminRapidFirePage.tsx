@@ -19,6 +19,7 @@ import {
   startRapidFireQuestionApi,
 } from '@/api/rapidFire';
 import { useEventConfig } from '@/hooks/useEventConfig';
+import { useWebSocket } from '@/context';
 
 export function AdminRapidFirePage() {
   const { bundle, loading: bundleLoading, error: bundleError } = useEventConfig();
@@ -29,6 +30,7 @@ export function AdminRapidFirePage() {
   const [actionSuccess, setActionSuccess] = useState<string | null>(null);
   const [selectedQuestionId, setSelectedQuestionId] = useState<string>('');
   const [busy, setBusy] = useState(false);
+  const { subscribe } = useWebSocket();
 
   async function loadAdminState() {
     try {
@@ -44,12 +46,23 @@ export function AdminRapidFirePage() {
 
   useEffect(() => {
     void loadAdminState();
+
+    const unsubs = [
+      subscribe('rapidfire:opened', () => void loadAdminState()),
+      subscribe('rapidfire:closed', () => void loadAdminState()),
+      subscribe('rapidfire:submission', () => void loadAdminState()),
+      subscribe('rapidfire:awarded', () => void loadAdminState()),
+    ];
+
     const interval = setInterval(() => {
       void loadAdminState();
-    }, 2000);
+    }, 3000);
 
-    return () => clearInterval(interval);
-  }, []);
+    return () => {
+      unsubs.forEach((unsub) => unsub());
+      clearInterval(interval);
+    };
+  }, [subscribe]);
 
   if (loading || bundleLoading) return <LoadingState title="Loading rapid fire control" />;
   if ((error || bundleError) && !state) {

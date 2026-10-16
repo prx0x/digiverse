@@ -13,6 +13,19 @@ vi.mock('@/api/rapidFire', () => ({
   submitRapidFireAnswerApi: vi.fn(),
 }));
 
+vi.mock('@/context', async (importActual) => {
+  const actual = await importActual<typeof import('@/context')>();
+  return {
+    ...actual,
+    useWebSocket: () => ({
+      status: 'connected',
+      latencyMs: null,
+      subscribe: () => () => {},
+      send: () => {},
+    }),
+  };
+});
+
 describe('RapidFirePage component', () => {
   it('renders question prompt, timer, and submits answer', async () => {
     vi.mocked(rapidFireApi.getRapidFireCurrentApi).mockResolvedValue({

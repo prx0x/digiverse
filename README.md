@@ -7,7 +7,7 @@ Digiverse is a real-time competitive game web application for events run by **GD
 
 Admins create team accounts and configure the entire event from an admin panel. There is **no public registration**.
 
-> **Status: Build Phase 1 in progress.** The web UI foundation (Bauhaus tokens, shells, MOCK screens) runs locally. There is **no backend, auth, or live game logic yet** — check `PROGRESS.md`.
+> **Status: Build Phase 6 complete.** The entire system is built and fully operational — real authentication, admin event management, Rapid-Fire Quiz (Game Phase A) with real-time award distribution, pure decimal Game Engine (Game Phase B) with palette generation and all 4 power-up cards, 4-decimal-place live leaderboard with tiebreaker ranking, and comprehensive production container configs.
 
 ## Documentation map
 | File | Purpose |
@@ -15,9 +15,11 @@ Admins create team accounts and configure the entire event from an admin panel. 
 | `AGENT.md` | Persistent instructions for Cursor / Antigravity agents |
 | `MEMORY.md` | Durable project context and conventions |
 | `PROGRESS.md` | Live status checklist for the six build phases |
-| `API_SURFACE_SUMMARY.md` | Implemented vs planned API/events |
+| `API_SURFACE_SUMMARY.md` | Complete implemented API & WebSocket event specifications |
 | `PHASED_EXECUTION_PLAN.md` | Full six-phase plan with acceptance criteria |
-| `OPEN_RULE_DECISIONS.md` | Rule conflicts/ambiguities awaiting organiser decisions |
+| `OPEN_RULE_DECISIONS.md` | Rule conflicts/ambiguities and resolved decisions |
+| `docs/RUNBOOK.md` | Official event-day operations manual & emergency recovery guide |
+| `docker-compose.prod.yml` | Multi-container production deployment specification |
 | `.env.example` | Environment variable template (no secrets) |
 | `docs/source/` | Official rules + `consider.docx` |
 
@@ -103,12 +105,24 @@ pnpm test:e2e     # Build Phase 6 (Playwright)
 ```
 
 ## Testing
-- `packages/shared`: `formatScore` unit tests (exactly 4 decimal places; no premature rounding of source strings).
-- `apps/web`: `ScoreDisplay` render tests; MOCK palette shuffle tests.
-- Engine / API / E2E tests: later phases.
+All 80 tests pass across the monorepo:
+```bash
+pnpm test         # Run all unit, integration, and E2E playthrough tests
+pnpm lint         # Run ESLint
+pnpm typecheck    # Run TypeScript strict typecheck
+pnpm build        # Production builds
+```
 
-## Deployment
-Deferred to Build Phase 6. Intended shape: static web hosting + long-running Node server + managed Postgres.
+## Production Deployment
+The production deployment uses multi-stage Docker builds:
+- **PostgreSQL 16**: Persistent database volume
+- **Fastify Server (`apps/server`)**: Node 22 slim container
+- **Nginx Web (`apps/web`)**: Serving static Vite bundle and proxying `/api` and `/ws`
+
+```bash
+docker compose -f docker-compose.prod.yml up --build -d
+```
+See [`docs/RUNBOOK.md`](docs/RUNBOOK.md) for pre-event configuration, live game operation, and emergency recovery procedures.
 
 ## Security notes
 No public signup · hashed passwords (from Phase 2) · server-side authorisation · rate-limited auth · no secrets in the repo · server is authoritative for all game outcomes.

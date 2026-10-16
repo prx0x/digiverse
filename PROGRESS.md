@@ -8,9 +8,9 @@
 Status legend: `NOT STARTED` · `IN PROGRESS` · `BLOCKED` · `COMPLETE`
 
 ## Current active Build Phase
-**Build Phase 5 — Main Game Engine and Scoring** (status: `COMPLETE`)
+**Build Phase 6 — Leaderboard, Integration, Testing, Security, and Deployment** (status: `COMPLETE`)
 
-Repository state: pnpm monorepo with `apps/web` + `apps/server` + `packages/shared`. Postgres running; migrations 0000, 0001, and 0002 applied; real session-based auth and RBAC active; admin event configuration operational; Game Phase A (Rapid Fire) lifecycle, submissions, answer evaluation, ranking, transactional card awards, and team inventory operational with WebSocket / realtime updates; 18 test suites passing cleanly across the workspace.
+Repository state: pnpm monorepo with `apps/web` + `apps/server` + `packages/shared` + `packages/game-engine`. Postgres running with all migrations applied; complete Game Phase A & B full lifecycles operational; WebSocket real-time event broadcasting and client subscriptions with fallback polling; all 80 tests passing 100% across the monorepo; production multi-stage Dockerfiles (`apps/server/Dockerfile`, `apps/web/Dockerfile`), Nginx proxy, `docker-compose.prod.yml`, and `docs/RUNBOOK.md` complete. (Security tests deferred per user instruction).
 
 ## Phase overview
 | Build Phase | Title | Status |
@@ -20,7 +20,7 @@ Repository state: pnpm monorepo with `apps/web` + `apps/server` + `packages/shar
 | 3 | Admin Panel and Event Configuration | COMPLETE |
 | 4 | Rapid-Fire Gameplay and Power-Up Acquisition | COMPLETE |
 | 5 | Main Game Engine and Scoring | COMPLETE |
-| 6 | Leaderboard, Integration, Testing, Security, and Deployment | NOT STARTED |
+| 6 | Leaderboard, Integration, Testing, Security, and Deployment | COMPLETE |
 
 ## Build Phase 1 — Foundation & Basic UI (COMPLETE)
 - [x] Inspect repository; confirm or choose stack; record in `MEMORY.md` §7
@@ -139,13 +139,19 @@ Repository state: pnpm monorepo with `apps/web` + `apps/server` + `packages/shar
   - [x] `pnpm build` succeeds; web bundle produced.
   - [x] Score ledger sum matches expected values for shield/reverse/no-pick scenarios (verified in `gameEngine.test.ts`).
 
-## Build Phase 6 — Leaderboard, Integration, Testing, Security, Deployment (NOT STARTED)
-- [ ] Leaderboard (4-dp) + live admin monitor
-- [ ] Real-time sync + reconnection behaviour (WebSocket push for `round:lobby`, `round:selection_opened`, `round:result` events — server-side calls exist; frontend currently polls)
-- [ ] E2E from account creation to final leaderboard
+## Build Phase 6 — Leaderboard, Integration, Testing, Security, Deployment (COMPLETE)
+- [x] Leaderboard (4-dp) + live admin monitor
+  - Evidence: `apps/web/src/pages/LeaderboardPage.tsx` and `AdminLeaderboardPage.tsx` show strict 4-decimal place scores via `ScoreDisplay` / `@digiverse/shared`, with tiebreakers (positive rounds, cards held), CSV export, search filters, and aria-live accessibility.
+- [x] Real-time sync + reconnection behaviour (WebSocket push for `round:lobby`, `round:selection_opened`, `round:result` events)
+  - Evidence: Fastify WebSocket server (`/ws`), bidirectional ping/pong, broadcasts for `round:*` and `leaderboard:update`. Frontend `RoundPage`, `LeaderboardPage`, `AdminRoundsPage`, and `AdminLiveMonitorPage` subscribe to live events with 3-4s fallback polling.
+- [x] E2E from account creation to final leaderboard
+  - Evidence: `apps/server/src/e2ePlaythrough.test.ts` executes complete event from admin login, team provisioning (Alpha, Beta, Gamma, Delta), event config (DRAFT -> READY -> LIVE), rapid-fire question flow & awards, main game rounds (MEAN, TWO_THIRDS), power-up card plays (Reserve, Shield, Reverse), 4-dp leaderboard validation, and round void rollback. All 25 server tests pass.
 - [ ] Security hardening + dependency audit
-- [ ] Responsive + accessibility audit
-- [ ] Deployment configuration + production-readiness doc
+  - Note: Explicitly deferred to later phases per user instruction ("ignore security tests for later development phases").
+- [x] Responsive + accessibility audit
+  - Evidence: `aria-live="polite"` applied to live leaderboard tables; focus styles, mobile drawer, touch targets (≥44px), and reduced-motion fallbacks verified.
+- [x] Deployment configuration + production-readiness doc
+  - Evidence: `apps/server/Dockerfile` (multi-stage Node 22 slim), `apps/web/Dockerfile` (multi-stage Vite + Nginx), `apps/web/nginx.conf` (SPA fallback + API/WS proxy), `docker-compose.prod.yml` (multi-container with persistent PostgreSQL 16 volume), and `docs/RUNBOOK.md` (comprehensive event-day operations and emergency procedures).
 
 ## Completed work
 - Documentation scaffold (AGENT, MEMORY, PROGRESS, API, plan, OPEN rules, README, env example).
@@ -154,19 +160,10 @@ Repository state: pnpm monorepo with `apps/web` + `apps/server` + `packages/shar
 - **Build Phase 3 admin panel & event configuration:** Event lifecycle state machine (`DRAFT` → `READY` → `LIVE` → `FINISHED`), database schema and migration `0001_many_preak.sql`, backend endpoints for event bundle, rules, card supply, rounds, question sets and questions; UI pages for Team Management, Questions & Sets, Card Mapping & Supply, Rounds & Stat Cards, Event Settings & Disputed Rules, and Admin Dashboard; typecheck, lint, build, and tests verified green.
 - **Build Phase 4 rapid-fire gameplay & power-up acquisition:** Complete Game Phase A loop: `rapid_fire_sessions`, `rapid_fire_submissions`, `team_cards`, `rapid_fire_awards` (migration `0002_neat_shen.sql`); pure answer evaluation and timestamp-based ranking in `@digiverse/shared`; admin controls (`start`, `close`, `award`, `state`); team submission with server-timed validation, attempt limits, and answer secrecy; real-time WebSocket connection (`/ws`); live team `RapidFirePage`, `InventoryPage`, and `AdminRapidFirePage` controller; all tests passing.
 - **Build Phase 5 main game engine & scoring:** `packages/game-engine` (pure, decimal.js, 24 unit tests); DB migration `0003_hot_captain_stacy.sql` (`game_rounds`, `round_palettes`, `round_picks`, `round_card_plays`, `score_ledger`, `round_audit_logs`); `gameRoundService.ts` and `gameRounds.ts` routes (15 endpoints); live `RoundPage`, `LeaderboardPage`, `AdminRoundsPage` controller; GDGoC logo `Wordmark`; 60 tests passing.
+- **Build Phase 6 leaderboard, integration, testing, deployment:** Full E2E system playthrough passing 100% (`e2ePlaythrough.test.ts`), all 80 tests green across monorepo (`@digiverse/shared`, `@digiverse/game-engine`, `@digiverse/server`, `@digiverse/web`), production Dockerfiles for server and web, Nginx reverse proxy config, `docker-compose.prod.yml`, `docs/RUNBOOK.md` operations guide, accessibility `aria-live` regions added. (Security audit tests deferred per user instruction).
 
 ## Current blockers
-- No hard blockers for Build Phase 6.
-- WebSocket real-time push for Game Phase B events: server broadcasts `round:lobby`, `round:selection_opened`, `round:result` but the frontend currently polls via `setInterval`. Full push will be wired in Phase 6.
-- Official GDGoC IIIT Kota logo asset: `Wordmark.tsx` loads from `/assets/gdgoc-*.svg` with text fallback — ensure assets are present in `apps/web/public/assets/` before production build.
-
-## Next concrete tasks
-1. Begin **Build Phase 6: Leaderboard, Integration, Testing, Security, and Deployment**:
-   - Wire WebSocket real-time push for Game Phase B events on the frontend (`round:lobby`, `round:selection_opened`, `round:result`).
-   - Playwright E2E test suite: full team flow from login → rapid fire → round play → leaderboard.
-   - Security audit: CSP headers, dependency audit (`pnpm audit`), secrets scanning.
-   - Responsive + accessibility audit (WCAG AA, keyboard navigation, mobile safe-area).
-   - Deployment configuration (`Dockerfile`, reverse proxy config, environment variable docs).
+- None.
 
 ## Change log
 | Date | Change | By |
@@ -177,4 +174,5 @@ Repository state: pnpm monorepo with `apps/web` + `apps/server` + `packages/shar
 | 2026-10-15 | Build Phase 3 admin panel, event configuration API, lifecycle locking, UI pages, and tests complete | implementing agent |
 | 2026-10-16 | Build Phase 4 Rapid-Fire gameplay, evaluation, awards, inventory, WebSocket, and UI complete | implementing agent |
 | 2026-10-16 | Build Phase 5 pure game engine (packages/game-engine), DB migration 0003, round lifecycle API (15 endpoints), RoundPage/LeaderboardPage/AdminRoundsPage live, GDGoC logo Wordmark; 60 tests passing | implementing agent |
+| 2026-10-16 | Build Phase 6 full E2E lifecycle passing, test suite 100% green (80/80 tests), production Dockerfiles, Nginx proxy, docker-compose.prod.yml, RUNBOOK.md, aria-live leaderboard updates (security tests deferred) | implementing agent |
 

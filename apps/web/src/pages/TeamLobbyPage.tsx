@@ -1,15 +1,16 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Badge, Button, LoadingState, Panel, StatusPill, WaitingState } from '@/components';
-import { useAuth } from '@/context/useAuth';
+import { useAuth, useWebSocket } from '@/context';
 import { getRoundCurrentApi } from '@/api/rounds';
 import type { TeamRoundView } from '@/api/rounds';
 
-const POLL_INTERVAL_MS = 4000;
+const POLL_INTERVAL_MS = 5000;
 
 export function TeamLobbyPage() {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { subscribe } = useWebSocket();
 
   const [roundView, setRoundView] = useState<TeamRoundView | null>(null);
   const [loading, setLoading] = useState(true);
@@ -29,12 +30,21 @@ export function TeamLobbyPage() {
     }
 
     void poll();
+
+    const unsubs = [
+      subscribe('round:lobby', () => void poll()),
+      subscribe('round:selection_opened', () => void poll()),
+      subscribe('round:result', () => void poll()),
+      subscribe('round:voided', () => void poll()),
+    ];
+
     const id = setInterval(() => void poll(), POLL_INTERVAL_MS);
     return () => {
       cancelled = true;
+      unsubs.forEach((unsub) => unsub());
       clearInterval(id);
     };
-  }, []);
+  }, [subscribe]);
 
   const round = roundView?.round ?? null;
 

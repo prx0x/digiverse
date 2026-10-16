@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { Wordmark, Badge, Button, MobileDrawer } from '@/components';
-import { useAuth } from '@/context';
+import { useAuth, useWebSocket } from '@/context';
 import './layouts.css';
 
 const links = [
@@ -14,6 +14,7 @@ const links = [
 
 export function TeamLayout() {
   const { user, logout } = useAuth();
+  const { status: wsStatus } = useWebSocket();
   const navigate = useNavigate();
   const [drawerOpen, setDrawerOpen] = useState(false);
 
@@ -32,13 +33,16 @@ export function TeamLayout() {
 
   return (
     <div className="shell">
-      <div className="mock-banner" role="note">
-        LIVE AUTH (Phase 2) — Authenticated as {user?.role === 'admin' ? 'Administrator' : teamDisplayName}. Gameplay data mock until Phase 3–5.
+      <div className="mock-banner" role="note" style={{ background: 'var(--color-bg-subtle, #f0f4f8)', color: 'var(--color-ink, #000000)', borderBottom: '2px solid var(--color-brand-blue)' }}>
+        DIGIVERSE LIVE — Authenticated as {user?.role === 'admin' ? 'Administrator' : teamDisplayName}. Real-time sync active.
       </div>
       <header className="shell__header">
         <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)' }}>
           <Wordmark to="/team" inverse />
           {teamTag && <Badge tone="yellow">{teamTag}</Badge>}
+          <span style={{ fontSize: 'var(--font-size-xs)', color: wsStatus === 'connected' ? 'var(--color-brand-yellow)' : 'var(--color-brand-red)' }}>
+            ● {wsStatus === 'connected' ? 'LIVE' : 'SYNCING'}
+          </span>
         </div>
 
         {/* Desktop Navigation */}

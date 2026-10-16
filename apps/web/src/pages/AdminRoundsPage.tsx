@@ -23,11 +23,13 @@ import {
   type AdminRoundState,
 } from '@/api/rounds';
 import { formatApiError, useEventConfig } from '@/hooks/useEventConfig';
+import { useWebSocket } from '@/context';
 
 export function AdminRoundsPage() {
   const { bundle, setBundle, loading, error, locked, refresh } = useEventConfig();
   const [formError, setFormError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+  const { subscribe } = useWebSocket();
 
   // Live round controller state
   const [liveRound, setLiveRound] = useState<AdminRoundState | null>(null);
@@ -56,11 +58,26 @@ export function AdminRoundsPage() {
 
   useEffect(() => {
     void loadLiveRound();
+
+    const unsubs = [
+      subscribe('round:lobby', () => void loadLiveRound()),
+      subscribe('round:selection_opened', () => void loadLiveRound()),
+      subscribe('round:team_pick', () => void loadLiveRound()),
+      subscribe('round:card_played', () => void loadLiveRound()),
+      subscribe('round:result', () => void loadLiveRound()),
+      subscribe('round:timer_extended', () => void loadLiveRound()),
+      subscribe('round:voided', () => void loadLiveRound()),
+    ];
+
     const interval = setInterval(() => {
       void loadLiveRound();
-    }, 2000);
-    return () => clearInterval(interval);
-  }, []);
+    }, 3000);
+
+    return () => {
+      unsubs.forEach((unsub) => unsub());
+      clearInterval(interval);
+    };
+  }, [subscribe]);
 
   if (loading) return <LoadingState title="Loading rounds" />;
   if (error || !bundle) {

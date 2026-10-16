@@ -580,6 +580,11 @@ export async function resolveAndScoreRound(db: Db, roundId: string) {
     reverseCount: scoringResult.reverseCount,
   });
 
+  broadcastToAll('leaderboard:update', {
+    eventId: round.eventId,
+    roundId: round.id,
+  });
+
   return scoringResult;
 }
 
@@ -688,6 +693,11 @@ export async function voidRound(
   broadcastToAll('round:voided', {
     roundId,
     reason,
+  });
+
+  broadcastToAll('leaderboard:update', {
+    eventId: round.eventId,
+    voidedRoundId: roundId,
   });
 
   return { success: true };
