@@ -52,6 +52,12 @@ export const rapidFireTieBreakEnum = pgEnum('rapid_fire_tie_break', [
   'EARLIEST_RECEIVED_THEN_ID',
   'SHARE',
 ]);
+export const rapidFireStatusEnum = pgEnum('rapid_fire_status', [
+  'IDLE',
+  'QUESTION_OPEN',
+  'CLOSED',
+  'AWARDED',
+]);
 
 export const users = pgTable('users', {
   id: uuid('id').defaultRandom().primaryKey(),
@@ -193,13 +199,82 @@ export const roundConfigs = pgTable(
   (t) => [unique('round_configs_event_phase_number_unique').on(t.eventId, t.gamePhase, t.roundNumber)],
 );
 
+export const rapidFireSessions = pgTable('rapid_fire_sessions', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  eventId: uuid('event_id')
+    .notNull()
+    .references(() => events.id, { onDelete: 'cascade' }),
+  questionId: uuid('question_id')
+    .notNull()
+    .references(() => questions.id, { onDelete: 'cascade' }),
+  status: rapidFireStatusEnum('status').notNull().default('IDLE'),
+  openedAt: timestamp('opened_at', { withTimezone: true }),
+  closedAt: timestamp('closed_at', { withTimezone: true }),
+  awardedAt: timestamp('awarded_at', { withTimezone: true }),
+  timeLimitSeconds: integer('time_limit_seconds').notNull(),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const rapidFireSubmissions = pgTable(
+  'rapid_fire_submissions',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    sessionId: uuid('session_id')
+      .notNull()
+      .references(() => rapidFireSessions.id, { onDelete: 'cascade' }),
+    teamId: uuid('team_id')
+      .notNull()
+      .references(() => teams.id, { onDelete: 'cascade' }),
+    rawAnswer: text('raw_answer').notNull(),
+    isCorrect: boolean('is_correct').notNull(),
+    attemptNumber: integer('attempt_number').notNull().default(1),
+    receivedAt: timestamp('received_at', { withTimezone: true }).notNull().defaultNow(),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [unique('rf_submissions_session_team_attempt_unique').on(t.sessionId, t.teamId, t.attemptNumber)],
+);
+
+export const teamCards = pgTable('team_cards', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  eventId: uuid('event_id')
+    .notNull()
+    .references(() => events.id, { onDelete: 'cascade' }),
+  teamId: uuid('team_id')
+    .notNull()
+    .references(() => teams.id, { onDelete: 'cascade' }),
+  cardType: powerUpCardEnum('card_type').notNull(),
+  acquiredFrom: varchar('acquired_from', { length: 32 }).notNull().default('RAPID_FIRE'),
+  questionId: uuid('question_id').references(() => questions.id, { onDelete: 'set null' }),
+  usedInRoundId: uuid('used_in_round_id'),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const rapidFireAwards = pgTable('rapid_fire_awards', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  sessionId: uuid('session_id')
+    .notNull()
+    .references(() => rapidFireSessions.id, { onDelete: 'cascade' }),
+  teamId: uuid('team_id')
+    .notNull()
+    .references(() => teams.id, { onDelete: 'cascade' }),
+  cardType: powerUpCardEnum('card_type').notNull(),
+  rank: integer('rank').notNull(),
+  receivedAt: timestamp('received_at', { withTimezone: true }).notNull(),
+  reason: text('reason').notNull(),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+});
+
 export const usersRelations = relations(users, ({ one, many }) => ({
   team: one(teams, { fields: [users.id], references: [teams.userId] }),
   sessions: many(sessions),
 }));
 
-export const teamsRelations = relations(teams, ({ one }) => ({
+export const teamsRelations = relations(teams, ({ one, many }) => ({
   user: one(users, { fields: [teams.userId], references: [users.id] }),
+  cards: many(teamCards),
+  submissions: many(rapidFireSubmissions),
+  awards: many(rapidFireAwards),
 }));
 
 export const sessionsRelations = relations(sessions, ({ one }) => ({
@@ -211,6 +286,8 @@ export const eventsRelations = relations(events, ({ one, many }) => ({
   cardSupply: many(cardSupply),
   questionSets: many(questionSets),
   roundConfigs: many(roundConfigs),
+  rapidFireSessions: many(rapidFireSessions),
+  teamCards: many(teamCards),
 }));
 
 export const eventRulesRelations = relations(eventRules, ({ one }) => ({
@@ -226,12 +303,36 @@ export const questionSetsRelations = relations(questionSets, ({ one, many }) => 
   questions: many(questions),
 }));
 
-export const questionsRelations = relations(questions, ({ one }) => ({
+export const questionsRelations = relations(questions, ({ one, many }) => ({
   set: one(questionSets, { fields: [questions.setId], references: [questionSets.id] }),
+  rapidFireSessions: many(rapidFireSessions),
 }));
 
 export const roundConfigsRelations = relations(roundConfigs, ({ one }) => ({
   event: one(events, { fields: [roundConfigs.eventId], references: [events.id] }),
+}));
+
+export const rapidFireSessionsRelations = relations(rapidFireSessions, ({ one, many }) => ({
+  event: one(events, { fields: [rapidFireSessions.eventId], references: [events.id] }),
+  question: one(questions, { fields: [rapidFireSessions.questionId], references: [questions.id] }),
+  submissions: many(rapidFireSubmissions),
+  awards: many(rapidFireAwards),
+}));
+
+export const rapidFireSubmissionsRelations = relations(rapidFireSubmissions, ({ one }) => ({
+  session: one(rapidFireSessions, { fields: [rapidFireSubmissions.sessionId], references: [rapidFireSessions.id] }),
+  team: one(teams, { fields: [rapidFireSubmissions.teamId], references: [teams.id] }),
+}));
+
+export const teamCardsRelations = relations(teamCards, ({ one }) => ({
+  event: one(events, { fields: [teamCards.eventId], references: [events.id] }),
+  team: one(teams, { fields: [teamCards.teamId], references: [teams.id] }),
+  question: one(questions, { fields: [teamCards.questionId], references: [questions.id] }),
+}));
+
+export const rapidFireAwardsRelations = relations(rapidFireAwards, ({ one }) => ({
+  session: one(rapidFireSessions, { fields: [rapidFireAwards.sessionId], references: [rapidFireSessions.id] }),
+  team: one(teams, { fields: [rapidFireAwards.teamId], references: [teams.id] }),
 }));
 
 export type User = typeof users.$inferSelect;
@@ -243,3 +344,7 @@ export type CardSupply = typeof cardSupply.$inferSelect;
 export type QuestionSet = typeof questionSets.$inferSelect;
 export type Question = typeof questions.$inferSelect;
 export type RoundConfig = typeof roundConfigs.$inferSelect;
+export type RapidFireSession = typeof rapidFireSessions.$inferSelect;
+export type RapidFireSubmission = typeof rapidFireSubmissions.$inferSelect;
+export type TeamCard = typeof teamCards.$inferSelect;
+export type RapidFireAward = typeof rapidFireAwards.$inferSelect;

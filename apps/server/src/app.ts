@@ -2,6 +2,7 @@ import cookie from '@fastify/cookie';
 import cors from '@fastify/cors';
 import helmet from '@fastify/helmet';
 import rateLimit from '@fastify/rate-limit';
+import websocket from '@fastify/websocket';
 import Fastify from 'fastify';
 import type { AppConfig } from './config.js';
 import type { Db } from './db/client.js';
@@ -11,7 +12,9 @@ import { adminEventRoutes } from './routes/adminEvent.js';
 import { adminTeamRoutes } from './routes/adminTeams.js';
 import { authRoutes } from './routes/auth.js';
 import { healthRoutes } from './routes/health.js';
+import { rapidFireRoutes } from './routes/rapidFire.js';
 import { teamRoutes } from './routes/teams.js';
+import { registerClient } from './services/realtime.js';
 import './types.js';
 
 export type BuildAppOptions = {
@@ -111,6 +114,29 @@ export async function buildApp({ config, db }: BuildAppOptions) {
     });
   });
 
+  await app.register(websocket);
+
+  app.get('/ws', { websocket: true }, (socket, req) => {
+    if (!req.authUser) {
+      socket.close(4401, 'Unauthorized');
+      return;
+    }
+    const unregister = registerClient(socket, req.authUser);
+    socket.on('close', () => {
+      unregister();
+    });
+    socket.on('message', (data: { toString(): string }) => {
+      try {
+        const parsed = JSON.parse(data.toString());
+        if (parsed.type === 'ping') {
+          socket.send(JSON.stringify({ type: 'pong', timestamp: new Date().toISOString() }));
+        }
+      } catch {
+        // ignore malformed message
+      }
+    });
+  });
+
   await app.register(healthRoutes);
   await app.register(
     async (api) => {
@@ -118,6 +144,7 @@ export async function buildApp({ config, db }: BuildAppOptions) {
       await api.register(adminTeamRoutes);
       await api.register(adminEventRoutes);
       await api.register(teamRoutes);
+      await api.register(rapidFireRoutes);
     },
     { prefix: '/api/v1' },
   );

@@ -1,8 +1,17 @@
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { Wordmark, Badge } from '@/components';
-import { MOCK_ADMIN_SECTIONS } from '@/mocks';
 import { useAuth } from '@/context';
 import './layouts.css';
+const ADMIN_NAV_LINKS = [
+  { path: '/admin/teams', label: 'Teams' },
+  { path: '/admin/questions', label: 'Questions & Sets' },
+  { path: '/admin/rapid-fire', label: 'Rapid Fire (Phase A)' },
+  { path: '/admin/card-mapping', label: 'Card Mapping' },
+  { path: '/admin/rounds', label: 'Rounds & Stat Cards' },
+  { path: '/admin/settings', label: 'Event Settings' },
+  { path: '/admin/live', label: 'Live Monitor' },
+  { path: '/admin/leaderboard', label: 'Leaderboard' },
+];
 
 export function AdminLayout() {
   const { user, logout } = useAuth();
@@ -16,7 +25,7 @@ export function AdminLayout() {
   return (
     <div className="shell shell--admin">
       <div className="mock-banner" role="note">
-        PHASE 3 ACTIVE — Signed in as Admin ({user?.identifier}). Event configuration & management live.
+        BUILD PHASE 4 ACTIVE — Signed in as Admin ({user?.identifier}). Rapid Fire gameplay & power-up acquisition live.
       </div>
       <header className="shell__header">
         <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)' }}>
@@ -47,9 +56,9 @@ export function AdminLayout() {
           <NavLink to="/admin" end>
             Dashboard
           </NavLink>
-          {MOCK_ADMIN_SECTIONS.map((section) => (
-            <NavLink key={section.id} to={`/admin/${section.id}`}>
-              {section.title}
+          {ADMIN_NAV_LINKS.map((item) => (
+            <NavLink key={item.path} to={item.path}>
+              {item.label}
             </NavLink>
           ))}
         </nav>

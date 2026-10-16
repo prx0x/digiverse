@@ -50,11 +50,27 @@
 | `PATCH` | `/api/v1/admin/questions/:id` | Update question prompt, answer, topN, card mapping | ADMIN (CSRF required) | `Partial<QuestionRecord>` | `EventBundle` | `400 BAD_REQUEST`, `409 CONFIG_LOCKED` | Updates `questions` row; validates supply | 3 | `eventConfig.test.ts` |
 | `DELETE` | `/api/v1/admin/questions/:id` | Delete question | ADMIN (CSRF required) | None | `EventBundle` | `400 BAD_REQUEST`, `409 CONFIG_LOCKED` | Deletes `questions` row | 3 | `eventConfig.test.ts` |
 
-### 2.3 Implemented shared types / DB contracts
+### 2.3 Rapid Fire & Power-Up Acquisition (Build Phase 4)
+
+| Method | Path | Purpose | Auth | Request | Response | Errors | Side effects | Phase | Tests |
+|---|---|---|---|---|---|---|---|---|---|
+| `POST` | `/api/v1/admin/rapid-fire/start` | Launch a rapid fire question | ADMIN (CSRF required) | `{ questionId: string }` | `{ session, state }` | `400 BAD_REQUEST`, `401 UNAUTHORIZED`, `403 FORBIDDEN`, `409 CONFLICT` | Creates `rapid_fire_sessions` row, broadcasts `rapidfire:opened` | 4 | `rapidFire.test.ts` |
+| `POST` | `/api/v1/admin/rapid-fire/close` | Close active question early | ADMIN (CSRF required) | `{ sessionId?: string }` | `{ session, state }` | `400 BAD_REQUEST`, `401 UNAUTHORIZED`, `403 FORBIDDEN`, `404 NOT_FOUND` | Sets status `CLOSED`, broadcasts `rapidfire:closed` | 4 | `rapidFire.test.ts` |
+| `POST` | `/api/v1/admin/rapid-fire/award` | Evaluate submissions & award cards | ADMIN (CSRF required) | `{ sessionId?: string }` | `{ awards, state }` | `400 BAD_REQUEST`, `401 UNAUTHORIZED`, `403 FORBIDDEN`, `404 NOT_FOUND` | Inserts `rapid_fire_awards` & `team_cards`, broadcasts `rapidfire:awarded` | 4 | `rapidFire.test.ts` |
+| `GET` | `/api/v1/admin/rapid-fire/state` | Fetch full admin rapid fire state | ADMIN | None | `RapidFireAdminState` | `401 UNAUTHORIZED`, `403 FORBIDDEN` | None | 4 | `rapidFire.test.ts` |
+| `GET` | `/api/v1/rapid-fire/current` | Team view of active question & award | TEAM | None | `RapidFireTeamView` | `401 UNAUTHORIZED`, `403 FORBIDDEN` | Excludes answer definition & other teams' data | 4 | `rapidFire.test.ts` |
+| `POST` | `/api/v1/rapid-fire/answers` | Submit team answer | TEAM (CSRF required) | `{ questionId: string, answer: string }` | `{ submitted, receivedAt, attemptNumber, isCorrect }` | `400 BAD_REQUEST` (`QUESTION_CLOSED`, `ATTEMPTS_EXCEEDED`), `401 UNAUTHORIZED`, `403 FORBIDDEN` | Inserts `rapid_fire_submissions` row, notifies admin | 4 | `rapidFire.test.ts` |
+| `GET` | `/api/v1/teams/me/cards` | Fetch own team power-up card inventory | TEAM | None | `{ cards: TeamCardItem[] }` | `401 UNAUTHORIZED`, `403 FORBIDDEN` | None | 4 | `rapidFire.test.ts` |
+| `WS` | `/ws` | Real-time WebSocket connection | AUTH (Session cookie) | `{ type: "ping" }` | `{ type: "pong", timestamp }` + server push events | `4401 Unauthorized` | Registers client for live broadcasts | 4 | `rapidFire.test.ts` |
+
+### 2.4 Implemented shared types / DB contracts
 - `packages/shared/src/formatScore.ts`: `formatScore(value)` — rounds score to exactly 4 decimal places with no premature decimal truncation.
 - `packages/shared/src/eventConfig.ts`:
   - Enums: `EVENT_STATUSES`, `POWER_UP_CARDS`, `STAT_CARDS`, `GAME_PHASES`, `MATCHING_MODES`, `CLASH_PENALTY_MODES`, `MAJORITY_PENALTY_MODES`, `REVERSED_MAJORITY_REWARDS`, `STD_DEV_MODES`, `SAMPLE_STDDEV_SINGLE_BEHAVIOURS`, `EQUALITY_MODES`, `DISPLAY_ROUNDING_MODES`, `NO_PICK_BEHAVIOURS`, `DEGENERATE_ROUND_MODES`, `RAPID_FIRE_TIE_BREAKS`, `LIVE_EDITABLE_RULE_FIELDS`, `REQUIRED_RULE_FIELDS_FOR_GAME_PHASE_B`.
   - Supply validators: `validateCardSupplyMap(supply)`, `validateAwardedVsSupply(awards, supply)`.
+- `packages/shared/src/rapidFire.ts`:
+  - Enums & types: `RAPID_FIRE_STATUSES`, `RapidFireStatus`, `RapidFireSubmissionCandidate`, `RapidFireAwardAllocation`, `AllocateAwardsParams`, `RapidFireTeamView`, `RapidFireAdminState`, `TeamCardItem`.
+  - Pure functions: `evaluateAnswer(rawAnswer, answerDefinition, mode)` (EXACT, NORMALIZED, NUMERIC), `normalizeAnswer(str)`, `allocateRapidFireAwards(params)`.
 - Database migration `0000_empty_joseph.sql`:
   - `user_role` enum (`admin`, `team`)
   - `users` table: `id (uuid pk)`, `identifier (varchar unique)`, `password_hash (text)`, `role (user_role)`, `enabled (boolean)`, timestamps.
@@ -68,32 +84,26 @@
   - `question_sets` table: `id (uuid pk)`, `event_id (uuid fk events.id cascade)`, `name (varchar)`, `order_index (int)`, timestamps.
   - `questions` table: `id (uuid pk)`, `set_id (uuid fk question_sets.id cascade)`, `prompt (text)`, `answer_definition (text)`, `matching_mode (matching_mode)`, `time_limit_seconds (int)`, `mapped_card (power_up_card nullable)`, `top_n (int default 1)`, `order_index (int)`, timestamps.
   - `round_configs` table: `id (uuid pk)`, `event_id (uuid fk events.id cascade)`, `game_phase (game_phase)`, `round_number (int)`, `stat_card (stat_card nullable)`, `timer_seconds (int)`, timestamps, unique (event_id, game_phase, round_number).
+- Database migration `0002_neat_shen.sql`:
+  - Enums: `rapid_fire_status` (`IDLE`, `QUESTION_OPEN`, `CLOSED`, `AWARDED`).
+  - `rapid_fire_sessions` table: `id (uuid pk)`, `event_id (uuid fk events.id cascade)`, `question_id (uuid fk questions.id cascade)`, `status (rapid_fire_status default 'IDLE')`, `opened_at`, `closed_at`, `awarded_at`, `time_limit_seconds (int)`, timestamps.
+  - `rapid_fire_submissions` table: `id (uuid pk)`, `session_id (uuid fk rapid_fire_sessions.id cascade)`, `team_id (uuid fk teams.id cascade)`, `raw_answer (text)`, `is_correct (boolean)`, `attempt_number (int default 1)`, `received_at`, timestamps, unique (session_id, team_id, attempt_number).
+  - `team_cards` table: `id (uuid pk)`, `event_id (uuid fk events.id cascade)`, `team_id (uuid fk teams.id cascade)`, `card_type (power_up_card)`, `acquired_from (varchar 32 default 'RAPID_FIRE')`, `question_id (uuid fk questions.id nullable)`, `used_in_round_id (uuid nullable)`, `created_at`.
+  - `rapid_fire_awards` table: `id (uuid pk)`, `session_id (uuid fk rapid_fire_sessions.id cascade)`, `team_id (uuid fk teams.id cascade)`, `card_type (power_up_card)`, `rank (int)`, `received_at`, `reason (text)`, `created_at`.
 
 ## 3. Planned surface (PROPOSAL — not implemented)
 
-Base path suggestion: `/api/v1`. Real-time channel suggestion: WebSocket `/ws` (or SSE `/events`), authenticated by the same session.
+Base path suggestion: `/api/v1`. Real-time channel: WebSocket `/ws` (authenticated by session cookie).
 
-### 3.1 Rapid fire — Build Phase 4
-- Admin: `POST /admin/rapid-fire/start|close|advance`, `GET /admin/rapid-fire/submissions`.
-- Team: `GET /rapid-fire/current` (question without answer), `POST /rapid-fire/answers` (`{ questionId, answer }`; server timestamp; idempotent).
-
-### 3.2 Power-ups — Build Phase 4/5
-- `GET /teams/me/cards` — TEAM — own inventory.
-- `POST /rounds/:roundId/cards/play` — TEAM — `{ card: SHIELD|RESERVE|PEEK|REVERSE, params? }`; validated against lifecycle state/timing.
+### 3.1 Main game — Build Phase 5
+- Admin: `POST /admin/rounds/:id/open-lobby|open-selection|close-selection|resolve|publish-result`, `POST /admin/rounds/:id/abort`, `GET /admin/rounds/:id/live` (all picks, card plays, statuses).
+- Team: `GET /rounds/current` (stat card, state, timer, own palette order), `POST /rounds/:id/pick` (`{ number }`), `POST /rounds/:id/lock`, `POST /rounds/:id/cards/play` (`{ card: SHIELD|RESERVE|PEEK|REVERSE }`), `GET /rounds/:id/result` (own outcome; target/bucket info as permitted).
 - Peek response: `{ count: number }` only.
 
-### 3.3 Main game — Build Phase 5
-- Admin: `POST /admin/rounds/:id/open-lobby|open-selection|close-selection|resolve|publish-result`, `POST /admin/rounds/:id/abort`, `GET /admin/rounds/:id/live` (all picks, card plays, statuses).
-- Team: `GET /rounds/current` (stat card, state, timer, own palette order), `POST /rounds/:id/pick` (`{ number }`), `POST /rounds/:id/lock`, `GET /rounds/:id/result` (own outcome; target/bucket info as permitted).
-
-### 3.4 Leaderboard — Build Phase 5/6
+### 3.2 Leaderboard — Build Phase 5/6
 - `GET /leaderboard` — AUTH — ranked teams with totals (decimal strings; UI formats to 4 dp).
 - `GET /admin/leaderboard` and `GET /admin/ledger?teamId=` — ADMIN — score ledger/audit.
 
-### 3.5 Real-time events (PROPOSED names)
-Server→client: `event.state`, `rapidfire.question.opened|closed`, `rapidfire.award`, `round.lobby`, `round.selection.opened`, `round.timer.sync`, `round.card.played` (public-safe), `round.selection.closed`, `round.result`, `leaderboard.updated`, `team.inventory.updated` (own only), `admin.live.pick` (admin only).
-Client→server: `ping`, `resync.request` (returns full current state).
-All events must carry `eventId`, `serverTime`, and be recoverable via a state-fetch endpoint after reconnect.
-
-### 3.6 Proposed core data entities (for planning only)
-`team_cards`, `rapid_fire_submissions`, `rapid_fire_awards`, `rounds`, `round_palettes`, `round_picks`, `round_card_plays`, `round_results`, `score_ledger`, `audit_log`. Final schema is decided in Build Phases 4–5 and recorded in §2 once migrations exist.
+### 3.3 Real-time events
+Implemented in Phase 4: `rapidfire:opened`, `rapidfire:closed`, `rapidfire:awarded`, `rapidfire:submission`, `ping`/`pong`.
+Planned for Phase 5/6: `round.lobby`, `round.selection.opened`, `round.timer.sync`, `round.card.played`, `round.selection.closed`, `round.result`, `leaderboard.updated`.

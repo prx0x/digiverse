@@ -41,6 +41,13 @@ export function AdminDashboardPage() {
       status: 'Live API',
     },
     {
+      id: 'rapid-fire',
+      title: 'Rapid Fire (Phase A)',
+      blurb: 'Launch questions live, track submissions, and award power-up cards.',
+      accent: 'red' as const,
+      status: 'Live API',
+    },
+    {
       id: 'card-mapping',
       title: 'Card Mapping & Supply',
       blurb: `Reserve supply capped at 1. Configured across all 4 power-ups.`,

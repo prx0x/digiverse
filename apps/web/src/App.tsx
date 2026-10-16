@@ -5,6 +5,7 @@ import { TeamLayout } from '@/layouts/TeamLayout';
 import { AdminCardMappingPage } from '@/pages/AdminCardMappingPage';
 import { AdminDashboardPage } from '@/pages/AdminDashboardPage';
 import { AdminQuestionsPage } from '@/pages/AdminQuestionsPage';
+import { AdminRapidFirePage } from '@/pages/AdminRapidFirePage';
 import { AdminRoundsPage } from '@/pages/AdminRoundsPage';
 import { AdminSectionPage } from '@/pages/AdminSectionPage';
 import { AdminSettingsPage } from '@/pages/AdminSettingsPage';
@@ -47,6 +48,7 @@ export function App() {
             <Route index element={<AdminDashboardPage />} />
             <Route path="teams" element={<AdminTeamsPage />} />
             <Route path="questions" element={<AdminQuestionsPage />} />
+            <Route path="rapid-fire" element={<AdminRapidFirePage />} />
             <Route path="card-mapping" element={<AdminCardMappingPage />} />
             <Route path="rounds" element={<AdminRoundsPage />} />
             <Route path="settings" element={<AdminSettingsPage />} />

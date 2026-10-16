@@ -1,16 +1,16 @@
 # PROGRESS.md — Live Project Status
 
-**Last updated:** 2026-10-15
-**Updated by:** Build Phase 3 implementation agent
+**Last updated:** 2026-10-16
+**Updated by:** Build Phase 4 implementation agent
 
 > Rule: the coding agent MUST update this file after every meaningful implementation milestone (task finished, test result changed, blocker found/cleared, phase status changed). Mark an item `[x]` only after verifying it in the repository, and record the evidence (command + result). Never mark work complete on the basis of a plan.
 
 Status legend: `NOT STARTED` · `IN PROGRESS` · `BLOCKED` · `COMPLETE`
 
 ## Current active Build Phase
-**Build Phase 4 — Rapid-Fire Gameplay and Power-Up Acquisition** (status: `NOT STARTED` — ready to begin)
+**Build Phase 5 — Main Game Engine and Scoring** (status: `NOT STARTED` — gated by OPEN_RULE_DECISIONS.md)
 
-Repository state: pnpm monorepo with `apps/web` + `apps/server` + `packages/shared`. Postgres running; migrations 0000 and 0001 applied; real session-based auth and RBAC active; full admin event configuration UI & API operational; 16 test suites passing cleanly across the workspace.
+Repository state: pnpm monorepo with `apps/web` + `apps/server` + `packages/shared`. Postgres running; migrations 0000, 0001, and 0002 applied; real session-based auth and RBAC active; admin event configuration operational; Game Phase A (Rapid Fire) lifecycle, submissions, answer evaluation, ranking, transactional card awards, and team inventory operational with WebSocket / realtime updates; 18 test suites passing cleanly across the workspace.
 
 ## Phase overview
 | Build Phase | Title | Status |
@@ -18,7 +18,7 @@ Repository state: pnpm monorepo with `apps/web` + `apps/server` + `packages/shar
 | 1 | Project Foundation and Basic UI Layout | COMPLETE |
 | 2 | Backend Foundation, Database, Authentication, and Roles | COMPLETE |
 | 3 | Admin Panel and Event Configuration | COMPLETE |
-| 4 | Rapid-Fire Gameplay and Power-Up Acquisition | NOT STARTED |
+| 4 | Rapid-Fire Gameplay and Power-Up Acquisition | COMPLETE |
 | 5 | Main Game Engine and Scoring | NOT STARTED (gated by OPEN_RULE_DECISIONS.md) |
 | 6 | Leaderboard, Integration, Testing, Security, and Deployment | NOT STARTED |
 
@@ -90,12 +90,26 @@ Repository state: pnpm monorepo with `apps/web` + `apps/server` + `packages/shar
 - [x] Persistence + validation + tests
   - Evidence: Migration `0001_many_preak.sql` applied. 16 tests passing across monorepo (`eventConfig.test.ts`, `app.test.ts`, etc.). `typecheck`, `lint`, and `build` pass clean.
 
-## Build Phase 4 — Rapid Fire & Power-Up Acquisition (NOT STARTED)
-- [ ] Question delivery + server-timed submissions
-- [ ] Answer checking, ranking, award allocation
-- [ ] Power-up inventory per team
-- [ ] Real-time state sync; audit trail (timestamps, awards)
-- [ ] Tests (ranking, ties, access control)
+## Build Phase 4 — Rapid Fire & Power-Up Acquisition (COMPLETE)
+- [x] Question delivery + server-timed submissions
+  - Evidence: Server endpoints `GET /api/v1/rapid-fire/current` (never leaks answers), `POST /api/v1/rapid-fire/answers` with server timestamps, attempt limits, question expiry checks.
+- [x] Answer checking, ranking, award allocation
+  - Evidence: Pure evaluation `evaluateAnswer` (EXACT, NORMALIZED, NUMERIC), pure ranking `allocateRapidFireAwards` by server timestamp with deterministic tiebreak.
+- [x] Power-up inventory per team
+  - Evidence: Database table `team_cards`, `GET /api/v1/teams/me/cards`, `GET /api/v1/teams/me` with grouped summary. Live UI on `InventoryPage.tsx` using Bauhaus `PowerUpCard`.
+- [x] Real-time state sync; audit trail (timestamps, awards)
+  - Evidence: `@fastify/websocket` mounted on `/ws`; broadcast events `rapidfire:opened`, `rapidfire:closed`, `rapidfire:awarded`, `rapidfire:submission`. Tables `rapid_fire_submissions` and `rapid_fire_awards` queryable by admin via `GET /api/v1/admin/rapid-fire/state`.
+- [x] Admin Rapid Fire Controller UI
+  - Evidence: `AdminRapidFirePage.tsx` with question selection, launch/close/award controls, live incoming submissions table, and award distribution summary.
+- [x] Tests (ranking, ties, supply limits, state transitions, authorisation)
+  - Evidence: `packages/shared/src/rapidFire.test.ts` (7 tests), `apps/server/src/rapidFire.test.ts` (4 integration tests), `apps/web/src/pages/RapidFirePage.test.tsx` (2 tests). Monorepo test suites passing 100% green.
+- **Acceptance evidence:**
+  - [x] N simulated teams submit concurrently; exactly top-N correct earliest teams receive the card; Reserve never over-awarded (verified in `rapidFire.test.ts`).
+  - [x] Late/duplicate/invalid submissions rejected correctly (`QUESTION_CLOSED`, `ATTEMPTS_EXCEEDED`).
+  - [x] Clients never receive correct answers or other teams' answers (`rapidFire.test.ts` asserts `answerDefinition` is undefined on team route).
+  - [x] Reconnecting client recovers current state (`RapidFireTeamView`).
+  - [x] Audit records exist and are admin-readable (`RapidFireAdminState`).
+  - [x] Typecheck, lint, build, and tests verified green.
 
 ## Build Phase 5 — Main Game Engine & Scoring (NOT STARTED — GATED)
 - [ ] Gate: every "Blocks Build Phase 5 = Yes" item in `OPEN_RULE_DECISIONS.md` resolved or configurable
@@ -118,17 +132,17 @@ Repository state: pnpm monorepo with `apps/web` + `apps/server` + `packages/shar
 - **Build Phase 1 application scaffold:** monorepo, Bauhaus tokens, component library, MOCK screens, gallery, formatScore + tests.
 - **Build Phase 2 backend & auth foundation:** Fastify server, PostgreSQL + Drizzle ORM migrations, argon2 password hashing, admin bootstrap, session management with CSRF protection, RBAC middleware, admin team provisioning API, rate limiting, React auth context and route guards, unit and integration tests passing.
 - **Build Phase 3 admin panel & event configuration:** Event lifecycle state machine (`DRAFT` → `READY` → `LIVE` → `FINISHED`), database schema and migration `0001_many_preak.sql`, backend endpoints for event bundle, rules, card supply, rounds, question sets and questions; UI pages for Team Management, Questions & Sets, Card Mapping & Supply, Rounds & Stat Cards, Event Settings & Disputed Rules, and Admin Dashboard; typecheck, lint, build, and tests verified green.
+- **Build Phase 4 rapid-fire gameplay & power-up acquisition:** Complete Game Phase A loop: `rapid_fire_sessions`, `rapid_fire_submissions`, `team_cards`, `rapid_fire_awards` (migration `0002_neat_shen.sql`); pure answer evaluation and timestamp-based ranking in `@digiverse/shared`; admin controls (`start`, `close`, `award`, `state`); team submission with server-timed validation, attempt limits, and answer secrecy; real-time WebSocket connection (`/ws`); live team `RapidFirePage`, `InventoryPage`, and `AdminRapidFirePage` controller; all tests passing.
 
 ## Current blockers
-- Organiser decisions pending for items in `OPEN_RULE_DECISIONS.md` (all 23 options are now configurable via Admin Settings UI; do **not** block Build Phase 4; **do** block Build Phase 5).
+- Organiser decisions pending for items in `OPEN_RULE_DECISIONS.md` (all 23 options are now configurable via Admin Settings UI; do **not** block Build Phase 4; **do** block Build Phase 5: items OPEN-020, OPEN-021, OPEN-022).
 - Official GDGoC IIIT Kota logo asset not supplied (text wordmark in use).
 
 ## Next concrete tasks
-1. Proceed to **Build Phase 4: Rapid-Fire Gameplay and Power-Up Acquisition**:
-   - Implement state machine for rapid fire (`IDLE` → `QUESTION_OPEN` → `CLOSED` → `AWARDED`).
-   - Implement real-time question delivery and server-timed answer submissions.
-   - Implement answer evaluation, top-N ranking, and transactional card inventory allocation.
-   - Replace mocks on team rapid-fire screen and inventory views.
+1. Gate check for **Build Phase 5: Main Game Engine and Scoring**:
+   - Verify resolution of items OPEN-020, OPEN-021, and OPEN-022 with organizers, or encode their configured defaults into the game engine.
+   - Scaffold `packages/game-engine` using `decimal.js` for pure rational/exact statistical computations without intermediate float rounding.
+   - Implement round state machine: `LOBBY` → `SELECTION` → `CLASH_RESOLUTION` → `CALCULATION` → `BUCKETING` → `SCORING` → `RESULT`.
 
 ## Change log
 | Date | Change | By |
@@ -137,3 +151,4 @@ Repository state: pnpm monorepo with `apps/web` + `apps/server` + `packages/shar
 | 2026-10-15 | Build Phase 1 scaffold + UI foundation implemented; scripts verified | implementing agent |
 | 2026-10-15 | Build Phase 2 backend, DB migrations, auth, RBAC, frontend auth integration & tests complete | implementing agent |
 | 2026-10-15 | Build Phase 3 admin panel, event configuration API, lifecycle locking, UI pages, and tests complete | implementing agent |
+| 2026-10-16 | Build Phase 4 Rapid-Fire gameplay, evaluation, awards, inventory, WebSocket, and UI complete | implementing agent |

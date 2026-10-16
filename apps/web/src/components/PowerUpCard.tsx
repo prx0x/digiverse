@@ -1,20 +1,20 @@
-import type { MockPowerUp } from '@/mocks';
+import type { PowerUpCard as PowerUpCardType } from '@digiverse/shared';
 
 type Props = {
-  card: MockPowerUp;
+  card: PowerUpCardType;
   count?: number;
   note?: string;
   className?: string;
 };
 
-const shapeClass: Record<MockPowerUp, string> = {
+const shapeClass: Record<PowerUpCardType, string> = {
   SHIELD: 'power-up-card__shape--shield',
   RESERVE: 'power-up-card__shape--reserve',
   PEEK: 'power-up-card__shape--peek',
   REVERSE: 'power-up-card__shape--reverse',
 };
 
-const labels: Record<MockPowerUp, string> = {
+const labels: Record<PowerUpCardType, string> = {
   SHIELD: 'Shield',
   RESERVE: 'Reserve',
   PEEK: 'Peek',

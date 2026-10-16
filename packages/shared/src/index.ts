@@ -46,3 +46,21 @@ export type {
   StatCard,
   StdDevMode,
 } from './eventConfig.js';
+export {
+  RAPID_FIRE_STATUSES,
+  allocateRapidFireAwards,
+  evaluateAnswer,
+  isValidRapidFireStatus,
+  normalizeAnswer,
+} from './rapidFire.js';
+export type {
+  AllocateAwardsParams,
+  RapidFireAdminAward,
+  RapidFireAdminState,
+  RapidFireAdminSubmission,
+  RapidFireAwardAllocation,
+  RapidFireStatus,
+  RapidFireSubmissionCandidate,
+  RapidFireTeamView,
+  TeamCardItem,
+} from './rapidFire.js';
