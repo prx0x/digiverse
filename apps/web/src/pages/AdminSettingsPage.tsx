@@ -167,7 +167,7 @@ export function AdminSettingsPage() {
             {isDraft && ' Configuration is fully editable.'}
             {isReady && ' Configuration is locked and validated. Ready for event day.'}
             {isLive && ' Event is in progress! Only organiser penalty X values can be modified.'}
-            {isFinished && ' Event is concluded. All settings are permanently locked.'}
+            {isFinished && ' Event is concluded. You may reopen it as DRAFT to edit configuration and run another game.'}
           </p>
 
           {readiness.issues.length > 0 ? (
@@ -251,11 +251,11 @@ export function AdminSettingsPage() {
             )}
             {isFinished && (
               <Button
-                variant="secondary"
+                variant="danger"
                 disabled={updatingLifecycle}
                 onClick={() => void handleLifecycleTransition('DRAFT')}
               >
-                Reopen as DRAFT
+                Reopen as DRAFT (Restart Game)
               </Button>
             )}
           </div>

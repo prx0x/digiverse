@@ -389,8 +389,8 @@ export async function transitionEvent(db: Db, nextStatus: EventStatus) {
   const allowed: Record<EventStatus, EventStatus[]> = {
     DRAFT: ['READY'],
     READY: ['DRAFT', 'LIVE'],
-    LIVE: ['FINISHED'],
-    FINISHED: [],
+    LIVE: ['FINISHED', 'READY'],
+    FINISHED: ['DRAFT'],
   };
   if (!allowed[event.status].includes(nextStatus)) {
     throw conflict(`Cannot transition from ${event.status} to ${nextStatus}`);
