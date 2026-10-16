@@ -28,6 +28,22 @@ describe('Rapid Fire Shared Logic', () => {
       expect(evaluateAnswer('43', '42', 'NUMERIC')).toBe(false);
       expect(evaluateAnswer('invalid', '42', 'NUMERIC')).toBe(false);
     });
+
+    it('matches MCQ options correctly by option text, letter, or index', () => {
+      const options = ['London', 'Berlin', 'Paris', 'Rome'];
+      // Def is option text
+      expect(evaluateAnswer('Paris', 'Paris', 'NORMALIZED', 'MCQ', options)).toBe(true);
+      expect(evaluateAnswer('C', 'Paris', 'NORMALIZED', 'MCQ', options)).toBe(true);
+      expect(evaluateAnswer('c', 'Paris', 'NORMALIZED', 'MCQ', options)).toBe(true);
+      expect(evaluateAnswer('Berlin', 'Paris', 'NORMALIZED', 'MCQ', options)).toBe(false);
+      expect(evaluateAnswer('A', 'Paris', 'NORMALIZED', 'MCQ', options)).toBe(false);
+
+      // Def is letter
+      expect(evaluateAnswer('Paris', 'C', 'NORMALIZED', 'MCQ', options)).toBe(true);
+      expect(evaluateAnswer('C', 'C', 'NORMALIZED', 'MCQ', options)).toBe(true);
+      expect(evaluateAnswer('London', 'C', 'NORMALIZED', 'MCQ', options)).toBe(false);
+      expect(evaluateAnswer('A', 'C', 'NORMALIZED', 'MCQ', options)).toBe(false);
+    });
   });
 
   describe('allocateRapidFireAwards', () => {

@@ -14,7 +14,19 @@ let cachedCsrfToken: string | null = null;
 
 const BASE_URL = import.meta.env.DEV ? '/api/v1' : (import.meta.env.VITE_API_BASE_URL || '/api/v1');
 
+function getCsrfFromCookie(): string | null {
+  if (typeof document === 'undefined') return null;
+  const match = document.cookie.match(/(?:^|;\s*)digiverse_csrf=([^;]+)/);
+  return match ? decodeURIComponent(match[1]) : null;
+}
+
 export async function getCsrfToken(): Promise<string> {
+  const cookieToken = getCsrfFromCookie();
+  if (cookieToken) {
+    cachedCsrfToken = cookieToken;
+    return cookieToken;
+  }
+
   if (cachedCsrfToken) return cachedCsrfToken;
 
   const res = await fetch(`${BASE_URL}/auth/csrf`, {

@@ -10,6 +10,7 @@ import {
   MATCHING_MODES,
   NO_PICK_BEHAVIOURS,
   POWER_UP_CARDS,
+  QUESTION_TYPES,
   RAPID_FIRE_TIE_BREAKS,
   REVERSED_MAJORITY_REWARDS,
   SAMPLE_STDDEV_SINGLE_BEHAVIOURS,
@@ -111,6 +112,8 @@ const questionSchema = z.object({
   timeLimitSeconds: z.number().int().min(1),
   mappedCard: z.enum(POWER_UP_CARDS).nullable(),
   topN: z.number().int().min(1),
+  questionType: z.enum(QUESTION_TYPES).default('TEXT'),
+  options: z.array(z.string().min(1)).min(2).max(10).nullable().optional(),
 });
 
 const questionPatchSchema = questionSchema.partial();

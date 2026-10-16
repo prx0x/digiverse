@@ -1,4 +1,4 @@
-import type { MatchingMode, PowerUpCard, RapidFireTieBreak } from './eventConfig.js';
+import type { MatchingMode, PowerUpCard, QuestionType, RapidFireTieBreak } from './eventConfig.js';
 
 export const RAPID_FIRE_STATUSES = ['IDLE', 'QUESTION_OPEN', 'CLOSED', 'AWARDED'] as const;
 export type RapidFireStatus = (typeof RAPID_FIRE_STATUSES)[number];
@@ -15,10 +15,45 @@ export function normalizeAnswer(str: string): string {
     .trim();
 }
 
-export function evaluateAnswer(rawAnswer: string, answerDefinition: string, mode: MatchingMode): boolean {
+export function evaluateAnswer(
+  rawAnswer: string,
+  answerDefinition: string,
+  mode: MatchingMode,
+  questionType?: QuestionType,
+  options?: string[] | null,
+): boolean {
   const ans = rawAnswer.trim();
   const def = answerDefinition.trim();
   if (!ans || !def) return false;
+
+  if (questionType === 'MCQ' && options && options.length > 0) {
+    const letters = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J'];
+    // 1. Direct match (normalized)
+    if (normalizeAnswer(ans) === normalizeAnswer(def)) return true;
+
+    // 2. Resolve target option index from answerDefinition (if it's A/B/C/D or 0/1/2/3)
+    const defUpper = def.toUpperCase();
+    const defLetterIdx = letters.indexOf(defUpper);
+    const defNumIdx = /^\d+$/.test(def) ? parseInt(def, 10) : -1;
+    const targetIdx = defLetterIdx >= 0 ? defLetterIdx : (defNumIdx >= 0 && defNumIdx < options.length ? defNumIdx : -1);
+
+    if (targetIdx >= 0 && targetIdx < options.length) {
+      const correctOptText = options[targetIdx];
+      if (normalizeAnswer(ans) === normalizeAnswer(correctOptText)) return true;
+    }
+
+    // 3. Resolve user option index from rawAnswer (if user submitted A/B/C/D or 0/1/2/3)
+    const ansUpper = ans.toUpperCase();
+    const ansLetterIdx = letters.indexOf(ansUpper);
+    const ansNumIdx = /^\d+$/.test(ans) ? parseInt(ans, 10) : -1;
+    const userIdx = ansLetterIdx >= 0 ? ansLetterIdx : (ansNumIdx >= 0 && ansNumIdx < options.length ? ansNumIdx : -1);
+
+    if (userIdx >= 0 && userIdx < options.length) {
+      const userOptText = options[userIdx];
+      if (normalizeAnswer(userOptText) === normalizeAnswer(def)) return true;
+      if (targetIdx >= 0 && userIdx === targetIdx) return true;
+    }
+  }
 
   switch (mode) {
     case 'EXACT':
@@ -182,6 +217,8 @@ export interface RapidFireTeamView {
     remainingSeconds: number;
     mappedCard: PowerUpCard | null;
     topN: number;
+    questionType: QuestionType;
+    options: string[] | null;
   } | null;
   teamSubmission: {
     submitted: boolean;
@@ -229,6 +266,8 @@ export interface RapidFireAdminState {
     openedAt: string | null;
     closedAt: string | null;
     awardedAt: string | null;
+    questionType: QuestionType;
+    options: string[] | null;
   } | null;
   submissions: RapidFireAdminSubmission[];
   awards: RapidFireAdminAward[];

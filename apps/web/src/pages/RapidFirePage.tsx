@@ -169,6 +169,9 @@ export function RapidFirePage() {
       {(status === 'QUESTION_OPEN' || (status === 'CLOSED' && question)) && question && (
         <Panel accent="red" title="Current Question">
           <div style={{ display: 'flex', gap: 'var(--space-2)', marginBottom: 'var(--space-3)' }}>
+            {question.questionType === 'MCQ' && (
+              <Badge tone="yellow">Multiple Choice</Badge>
+            )}
             {question.mappedCard && (
               <Badge tone="yellow">Awards: {question.mappedCard}</Badge>
             )}
@@ -193,18 +196,94 @@ export function RapidFirePage() {
 
           {submission?.canSubmit ? (
             <form className="stack" onSubmit={onSubmit}>
-              <Input
-                id="rf-answer"
-                label="Your Answer"
-                value={answer}
-                onChange={(e) => setAnswer(e.target.value)}
-                required
-                disabled={submitting}
-                autoFocus
-              />
-              <div className="row">
+              {question.questionType === 'MCQ' && question.options && question.options.length > 0 ? (
+                <div className="stack" style={{ gap: 'var(--space-3)' }}>
+                  <label style={{ fontWeight: 600, fontSize: 'var(--font-size-md)' }}>
+                    Select an Option:
+                  </label>
+                  <div
+                    style={{
+                      display: 'grid',
+                      gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+                      gap: 'var(--space-3)',
+                    }}
+                  >
+                    {question.options.map((opt, idx) => {
+                      const letter = String.fromCharCode(65 + idx);
+                      const isSelected = answer === opt || answer.toUpperCase() === letter;
+                      return (
+                        <button
+                          key={idx}
+                          type="button"
+                          disabled={submitting}
+                          onClick={() => setAnswer(opt)}
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 'var(--space-3)',
+                            padding: 'var(--space-3) var(--space-4)',
+                            border: isSelected
+                              ? '3px solid var(--color-fg)'
+                              : '2px solid var(--color-border)',
+                            background: isSelected
+                              ? 'var(--color-accent-yellow)'
+                              : 'var(--color-surface)',
+                            cursor: submitting ? 'not-allowed' : 'pointer',
+                            textAlign: 'left',
+                            boxShadow: isSelected ? '4px 4px 0 var(--color-fg)' : 'none',
+                            transform: isSelected ? 'translate(-2px, -2px)' : 'none',
+                            transition: 'all 0.15s ease',
+                          }}
+                        >
+                          <span
+                            style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              width: '32px',
+                              height: '32px',
+                              background: isSelected ? 'var(--color-fg)' : 'var(--color-bg-subtle)',
+                              color: isSelected ? 'var(--color-bg)' : 'var(--color-fg)',
+                              fontWeight: 700,
+                              fontSize: 'var(--font-size-md)',
+                              border: '1px solid var(--color-border)',
+                              flexShrink: 0,
+                            }}
+                          >
+                            {letter}
+                          </span>
+                          <span
+                            style={{
+                              fontSize: 'var(--font-size-md)',
+                              fontWeight: isSelected ? 700 : 500,
+                              color: 'var(--color-fg)',
+                            }}
+                          >
+                            {opt}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              ) : (
+                <Input
+                  id="rf-answer"
+                  label="Your Answer"
+                  value={answer}
+                  onChange={(e) => setAnswer(e.target.value)}
+                  required
+                  disabled={submitting}
+                  autoFocus
+                />
+              )}
+              <div className="row" style={{ marginTop: 'var(--space-3)' }}>
                 <Button type="submit" disabled={submitting || !answer.trim()}>
-                  {submitting ? 'Submitting...' : 'Submit Answer'}
+                  {submitting
+                    ? 'Submitting...'
+                    : question.questionType === 'MCQ' && answer
+                      ? 'Submit Selection'
+                      : 'Submit Answer'}
                 </Button>
                 {submission.attemptCount > 0 && (
                   <span style={{ fontSize: 'var(--font-size-sm)', color: 'var(--color-muted)' }}>

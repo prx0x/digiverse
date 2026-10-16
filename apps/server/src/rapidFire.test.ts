@@ -583,4 +583,156 @@ describe('Build Phase 4 — Rapid-Fire Gameplay and Power-Up Acquisition', () =>
     expect(awards).toHaveLength(1);
     expect(awards[0].cardType).toBe('RESERVE');
   });
+
+  it('supports MCQ type questions in rapid fire', async () => {
+    const { csrf, session: adminSession } = await loginAdmin();
+
+    await app.inject({
+      method: 'PUT',
+      url: '/api/v1/admin/card-supply',
+      headers: { 'x-csrf-token': csrf.token },
+      cookies: {
+        [config.csrfCookieName]: csrf.cookie,
+        [config.sessionCookieName]: adminSession,
+      },
+      payload: {
+        items: [
+          { cardType: 'SHIELD', maxSupply: 5 },
+          { cardType: 'RESERVE', maxSupply: 1 },
+          { cardType: 'PEEK', maxSupply: 5 },
+          { cardType: 'REVERSE', maxSupply: 5 },
+        ],
+      },
+    });
+
+    await app.inject({
+      method: 'PUT',
+      url: '/api/v1/admin/rounds',
+      headers: { 'x-csrf-token': csrf.token },
+      cookies: {
+        [config.csrfCookieName]: csrf.cookie,
+        [config.sessionCookieName]: adminSession,
+      },
+      payload: {
+        rounds: [{ roundNumber: 1, statCard: 'MEAN', timerSeconds: 60 }],
+      },
+    });
+
+    const setRes = await app.inject({
+      method: 'POST',
+      url: '/api/v1/admin/question-sets',
+      headers: { 'x-csrf-token': csrf.token },
+      cookies: {
+        [config.csrfCookieName]: csrf.cookie,
+        [config.sessionCookieName]: adminSession,
+      },
+      payload: { name: 'MCQ Test Set' },
+    });
+    const setId = setRes.json().questionSets[0].id;
+
+    // Create an MCQ question
+    const qRes = await app.inject({
+      method: 'POST',
+      url: `/api/v1/admin/question-sets/${setId}/questions`,
+      headers: { 'x-csrf-token': csrf.token },
+      cookies: {
+        [config.csrfCookieName]: csrf.cookie,
+        [config.sessionCookieName]: adminSession,
+      },
+      payload: {
+        prompt: 'What is the capital of France?',
+        answerDefinition: 'Paris',
+        matchingMode: 'NORMALIZED',
+        questionType: 'MCQ',
+        options: ['London', 'Berlin', 'Paris', 'Rome'],
+        timeLimitSeconds: 20,
+        mappedCard: 'SHIELD',
+        topN: 1,
+      },
+    });
+    expect(qRes.statusCode).toBe(200);
+    const question = qRes.json().questionSets[0].questions[0];
+    expect(question.questionType).toBe('MCQ');
+    expect(question.options).toEqual(['London', 'Berlin', 'Paris', 'Rome']);
+
+    // Transition to READY and LIVE
+    await app.inject({
+      method: 'POST',
+      url: '/api/v1/admin/event/lifecycle',
+      headers: { 'x-csrf-token': csrf.token },
+      cookies: {
+        [config.csrfCookieName]: csrf.cookie,
+        [config.sessionCookieName]: adminSession,
+      },
+      payload: { status: 'READY' },
+    });
+    await app.inject({
+      method: 'POST',
+      url: '/api/v1/admin/event/lifecycle',
+      headers: { 'x-csrf-token': csrf.token },
+      cookies: {
+        [config.csrfCookieName]: csrf.cookie,
+        [config.sessionCookieName]: adminSession,
+      },
+      payload: { status: 'LIVE' },
+    });
+
+    const team = await createTeam(adminSession, csrf, 'Team MCQ');
+
+    // Admin starts MCQ question
+    await app.inject({
+      method: 'POST',
+      url: '/api/v1/admin/rapid-fire/start',
+      headers: { 'x-csrf-token': csrf.token },
+      cookies: {
+        [config.csrfCookieName]: csrf.cookie,
+        [config.sessionCookieName]: adminSession,
+      },
+      payload: { questionId: question.id },
+    });
+
+    // Team fetches current state: must receive questionType and options, but NOT answerDefinition
+    const teamViewRes = await app.inject({
+      method: 'GET',
+      url: '/api/v1/rapid-fire/current',
+      headers: { 'x-csrf-token': team.csrf.token },
+      cookies: {
+        [config.csrfCookieName]: team.csrf.cookie,
+        [config.sessionCookieName]: team.session,
+      },
+    });
+    const teamView = teamViewRes.json();
+    expect(teamView.question.questionType).toBe('MCQ');
+    expect(teamView.question.options).toEqual(['London', 'Berlin', 'Paris', 'Rome']);
+    expect(teamView.question.answerDefinition).toBeUndefined();
+
+    // Team submits MCQ answer ('Paris')
+    const subRes = await app.inject({
+      method: 'POST',
+      url: '/api/v1/rapid-fire/answers',
+      headers: { 'x-csrf-token': team.csrf.token },
+      cookies: {
+        [config.csrfCookieName]: team.csrf.cookie,
+        [config.sessionCookieName]: team.session,
+      },
+      payload: { questionId: question.id, answer: 'Paris' },
+    });
+    expect(subRes.statusCode).toBe(200);
+    expect(subRes.json().isCorrect).toBe(true);
+
+    // Award question
+    const awardRes = await app.inject({
+      method: 'POST',
+      url: '/api/v1/admin/rapid-fire/award',
+      headers: { 'x-csrf-token': csrf.token },
+      cookies: {
+        [config.csrfCookieName]: csrf.cookie,
+        [config.sessionCookieName]: adminSession,
+      },
+    });
+    const awards = awardRes.json().awards;
+    expect(awards).toHaveLength(1);
+    expect(awards[0].teamId).toBe(team.id);
+    expect(awards[0].cardType).toBe('SHIELD');
+  });
 });

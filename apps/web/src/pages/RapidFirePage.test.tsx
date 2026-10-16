@@ -25,6 +25,8 @@ describe('RapidFirePage component', () => {
         remainingSeconds: 15,
         mappedCard: 'SHIELD',
         topN: 2,
+        questionType: 'TEXT',
+        options: null,
       },
       teamSubmission: {
         submitted: false,
@@ -67,6 +69,61 @@ describe('RapidFirePage component', () => {
     });
   });
 
+  it('renders MCQ options and submits selected option', async () => {
+    vi.mocked(rapidFireApi.getRapidFireCurrentApi).mockResolvedValue({
+      status: 'QUESTION_OPEN',
+      question: {
+        id: 'q-102',
+        prompt: 'What is the capital of France?',
+        timeLimitSeconds: 20,
+        openedAt: new Date().toISOString(),
+        remainingSeconds: 15,
+        mappedCard: 'RESERVE',
+        topN: 1,
+        questionType: 'MCQ',
+        options: ['London', 'Berlin', 'Paris', 'Rome'],
+      },
+      teamSubmission: {
+        submitted: false,
+        attemptCount: 0,
+        maxAttempts: 1,
+        canSubmit: true,
+        lastReceivedAt: null,
+      },
+      award: null,
+    });
+
+    vi.mocked(rapidFireApi.submitRapidFireAnswerApi).mockResolvedValue({
+      submitted: true,
+      receivedAt: new Date().toISOString(),
+      attemptNumber: 1,
+      isCorrect: true,
+    });
+
+    render(
+      <MemoryRouter>
+        <RapidFirePage />
+      </MemoryRouter>,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText('What is the capital of France?')).toBeInTheDocument();
+    });
+
+    expect(screen.getByText(/Multiple Choice/i)).toBeInTheDocument();
+    expect(screen.getByText('Paris')).toBeInTheDocument();
+
+    const parisBtn = screen.getByRole('button', { name: /Paris/i });
+    fireEvent.click(parisBtn);
+
+    const submitBtn = screen.getByRole('button', { name: /submit selection/i });
+    fireEvent.click(submitBtn);
+
+    await waitFor(() => {
+      expect(rapidFireApi.submitRapidFireAnswerApi).toHaveBeenCalledWith('q-102', 'Paris');
+    });
+  });
+
   it('renders award result when awarded', async () => {
     vi.mocked(rapidFireApi.getRapidFireCurrentApi).mockResolvedValue({
       status: 'AWARDED',
@@ -78,6 +135,8 @@ describe('RapidFirePage component', () => {
         remainingSeconds: 0,
         mappedCard: 'SHIELD',
         topN: 2,
+        questionType: 'TEXT',
+        options: null,
       },
       teamSubmission: {
         submitted: true,

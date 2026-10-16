@@ -2,6 +2,7 @@ import type {
   EventStatus,
   MatchingMode,
   PowerUpCard,
+  QuestionType,
   StatCard,
 } from '@digiverse/shared';
 import { fetchApi } from './client';
@@ -67,6 +68,8 @@ export type QuestionRecord = {
   mappedCard: PowerUpCard | null;
   topN: number;
   orderIndex: number;
+  questionType?: QuestionType;
+  options?: string[] | null;
 };
 
 export type QuestionSetRecord = {

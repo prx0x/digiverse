@@ -4,6 +4,7 @@ import {
   POWER_UP_CARDS,
   type MatchingMode,
   type PowerUpCard,
+  type QuestionType,
 } from '@digiverse/shared';
 import {
   Badge,
@@ -32,6 +33,8 @@ export function AdminQuestionsPage() {
   const [formError, setFormError] = useState<string | null>(null);
   const [prompt, setPrompt] = useState('');
   const [answer, setAnswer] = useState('');
+  const [questionType, setQuestionType] = useState<QuestionType>('TEXT');
+  const [options, setOptions] = useState<string[]>(['', '', '', '']);
   const [matchingMode, setMatchingMode] = useState<MatchingMode>('NORMALIZED');
   const [timeLimit, setTimeLimit] = useState(30);
   const [mappedCard, setMappedCard] = useState<PowerUpCard | ''>('');
@@ -66,6 +69,13 @@ export function AdminQuestionsPage() {
     e.preventDefault();
     if (!currentSetId) return;
     setFormError(null);
+
+    const validOptions = options.map((o) => o.trim()).filter(Boolean);
+    if (questionType === 'MCQ' && validOptions.length < 2) {
+      setFormError('MCQ questions require at least 2 non-empty options.');
+      return;
+    }
+
     try {
       const next = await createQuestionApi(currentSetId, {
         prompt,
@@ -74,10 +84,14 @@ export function AdminQuestionsPage() {
         timeLimitSeconds: timeLimit,
         mappedCard: mappedCard || null,
         topN,
+        questionType,
+        options: questionType === 'MCQ' ? validOptions : null,
       });
       setBundle(next);
       setPrompt('');
       setAnswer('');
+      setQuestionType('TEXT');
+      setOptions(['', '', '', '']);
       setMappedCard('');
       setTopN(1);
       setNotice('Question saved.');
@@ -162,14 +176,108 @@ export function AdminQuestionsPage() {
                 required
                 disabled={locked}
               />
-              <Input
-                id="q-answer"
-                label="Answer definition (never shown to teams)"
-                value={answer}
-                onChange={(e) => setAnswer(e.target.value)}
-                required
-                disabled={locked}
-              />
+              <div className="form-grid--2 form-grid">
+                <Select
+                  id="q-type"
+                  label="Question format"
+                  value={questionType}
+                  onChange={(e) => {
+                    const nextType = e.target.value as QuestionType;
+                    setQuestionType(nextType);
+                    if (nextType === 'MCQ' && options.every((o) => !o.trim())) {
+                      setOptions(['', '', '', '']);
+                    }
+                  }}
+                  disabled={locked}
+                >
+                  <option value="TEXT">Free Response (Text)</option>
+                  <option value="MCQ">Multiple Choice (MCQ)</option>
+                </Select>
+                <Input
+                  id="q-answer"
+                  label={
+                    questionType === 'MCQ'
+                      ? 'Correct answer / option (e.g. option text or letter A/B/C/D)'
+                      : 'Answer definition (never shown to teams)'
+                  }
+                  value={answer}
+                  onChange={(e) => setAnswer(e.target.value)}
+                  required
+                  disabled={locked}
+                />
+              </div>
+
+              {questionType === 'MCQ' && (
+                <div className="stack" style={{ border: '2px solid var(--color-border)', padding: 'var(--space-3)', background: 'var(--color-bg-subtle)' }}>
+                  <div className="row" style={{ justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span style={{ fontWeight: 600, fontSize: 'var(--font-size-sm)' }}>
+                      MCQ Choices ({options.length})
+                    </span>
+                    <div className="row" style={{ gap: 'var(--space-2)' }}>
+                      {options.length < 6 && (
+                        <Button
+                          type="button"
+                          variant="secondary"
+                          onClick={() => setOptions([...options, ''])}
+                          disabled={locked}
+                        >
+                          + Add Option
+                        </Button>
+                      )}
+                      {options.length > 2 && (
+                        <Button
+                          type="button"
+                          variant="secondary"
+                          onClick={() => setOptions(options.slice(0, -1))}
+                          disabled={locked}
+                        >
+                          - Remove Option
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                  <div className="form-grid--2 form-grid">
+                    {options.map((opt, idx) => {
+                      const letter = String.fromCharCode(65 + idx);
+                      const isSelected = answer === opt || answer.toUpperCase() === letter;
+                      return (
+                        <div key={idx} className="stack" style={{ gap: 'var(--space-1)' }}>
+                          <div className="row" style={{ justifyContent: 'space-between', alignItems: 'center' }}>
+                            <span style={{ fontWeight: 600 }}>Option {letter}</span>
+                            <button
+                              type="button"
+                              style={{
+                                fontSize: 'var(--font-size-xs)',
+                                background: isSelected ? 'var(--color-accent-yellow)' : 'transparent',
+                                border: '1px solid var(--color-border)',
+                                cursor: 'pointer',
+                                padding: '2px 6px',
+                                fontWeight: isSelected ? 700 : 400,
+                              }}
+                              onClick={() => setAnswer(opt || letter)}
+                            >
+                              {isSelected ? '✓ Correct Answer' : `Set as Correct (${letter})`}
+                            </button>
+                          </div>
+                          <Input
+                            id={`mcq-opt-${idx}`}
+                            label=""
+                            placeholder={`Option ${letter} text`}
+                            value={opt}
+                            onChange={(e) => {
+                              const next = [...options];
+                              next[idx] = e.target.value;
+                              setOptions(next);
+                            }}
+                            disabled={locked}
+                          />
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
               <div className="form-grid--3 form-grid">
                 <Select
                   id="q-match"
@@ -228,13 +336,25 @@ export function AdminQuestionsPage() {
               <EmptyState title="Empty set" description="Add a question above." />
             ) : (
               <Table
-                headers={['#', 'Prompt', 'Match', 'Time', 'Card', 'Top-N', '']}
+                headers={['#', 'Type', 'Prompt', 'Match', 'Time', 'Card', 'Top-N', '']}
                 caption="Questions"
               >
                 {currentSet.questions.map((q) => (
                   <tr key={q.id}>
                     <td>{q.orderIndex}</td>
-                    <td>{q.prompt}</td>
+                    <td>
+                      <Badge tone={q.questionType === 'MCQ' ? 'yellow' : 'blue'}>
+                        {q.questionType === 'MCQ' ? `MCQ (${q.options?.length ?? 0})` : 'Text'}
+                      </Badge>
+                    </td>
+                    <td>
+                      <div style={{ fontWeight: 600 }}>{q.prompt}</div>
+                      {q.questionType === 'MCQ' && q.options && (
+                        <div style={{ fontSize: 'var(--font-size-xs)', color: 'var(--color-muted)', marginTop: 'var(--space-1)' }}>
+                          {q.options.map((opt, i) => `${String.fromCharCode(65 + i)}: ${opt}`).join(' | ')}
+                        </div>
+                      )}
+                    </td>
                     <td>{q.matchingMode}</td>
                     <td>{q.timeLimitSeconds}s</td>
                     <td>{q.mappedCard ?? '—'}</td>

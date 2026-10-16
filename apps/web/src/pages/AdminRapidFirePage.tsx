@@ -233,11 +233,37 @@ export function AdminRapidFirePage() {
           <div style={{ display: 'flex', gap: 'var(--space-2)', marginBottom: 'var(--space-2)' }}>
             <Badge tone="yellow">Mapped Card: {currentQ.mappedCard ?? 'None'}</Badge>
             <Badge tone="blue">Top-{currentQ.topN} Winners</Badge>
-            <Badge tone="black">Match: {currentQ.matchingMode}</Badge>
+            <Badge tone={currentQ.questionType === 'MCQ' ? 'yellow' : 'black'}>
+              {currentQ.questionType === 'MCQ' ? 'Format: MCQ' : `Match: ${currentQ.matchingMode}`}
+            </Badge>
           </div>
           <p style={{ fontSize: 'var(--font-size-lg)', fontWeight: 600, margin: 'var(--space-2) 0' }}>
             {currentQ.prompt}
           </p>
+          {currentQ.questionType === 'MCQ' && currentQ.options && (
+            <div style={{ margin: 'var(--space-2) 0', display: 'flex', flexWrap: 'wrap', gap: 'var(--space-2)' }}>
+              {currentQ.options.map((opt, i) => {
+                const letter = String.fromCharCode(65 + i);
+                const isCorrect =
+                  currentQ.answerDefinition === opt ||
+                  currentQ.answerDefinition.toUpperCase() === letter;
+                return (
+                  <span
+                    key={i}
+                    style={{
+                      padding: '4px 8px',
+                      border: '1px solid var(--color-border)',
+                      background: isCorrect ? 'var(--color-accent-yellow)' : 'var(--color-surface)',
+                      fontWeight: isCorrect ? 700 : 500,
+                      fontSize: 'var(--font-size-sm)',
+                    }}
+                  >
+                    {letter}: {opt} {isCorrect ? '✓' : ''}
+                  </span>
+                );
+              })}
+            </div>
+          )}
           <p style={{ color: 'var(--color-muted)' }}>
             <strong>Correct Answer:</strong> {currentQ.answerDefinition}
           </p>

@@ -21,6 +21,9 @@ export type GamePhase = (typeof GAME_PHASES)[number];
 export const MATCHING_MODES = ['EXACT', 'NORMALIZED', 'NUMERIC'] as const;
 export type MatchingMode = (typeof MATCHING_MODES)[number];
 
+export const QUESTION_TYPES = ['TEXT', 'MCQ'] as const;
+export type QuestionType = (typeof QUESTION_TYPES)[number];
+
 export const CLASH_PENALTY_MODES = ['FIXED_X', 'TWO_THIRDS_OF_PICK'] as const;
 export type ClashPenaltyMode = (typeof CLASH_PENALTY_MODES)[number];
 

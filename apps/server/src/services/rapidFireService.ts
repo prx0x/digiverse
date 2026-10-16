@@ -348,7 +348,13 @@ export async function submitRapidFireAnswer(
     throw new AppError(400, 'ATTEMPTS_EXCEEDED', `Maximum attempts (${maxAttempts}) reached for this question`);
   }
 
-  const isCorrect = evaluateAnswer(rawAnswer, question.answerDefinition, question.matchingMode);
+  const isCorrect = evaluateAnswer(
+    rawAnswer,
+    question.answerDefinition,
+    question.matchingMode,
+    question.questionType,
+    question.options,
+  );
 
   const [sub] = await db
     .insert(rapidFireSubmissions)
@@ -489,6 +495,8 @@ export async function getRapidFireTeamView(
           remainingSeconds,
           mappedCard: question.mappedCard,
           topN: question.topN,
+          questionType: question.questionType,
+          options: question.options,
         }
       : null,
     teamSubmission: {
@@ -595,6 +603,8 @@ export async function getRapidFireAdminState(
           openedAt: session.openedAt ? session.openedAt.toISOString() : null,
           closedAt: session.closedAt ? session.closedAt.toISOString() : null,
           awardedAt: session.awardedAt ? session.awardedAt.toISOString() : null,
+          questionType: question.questionType,
+          options: question.options,
         }
       : null,
     submissions,

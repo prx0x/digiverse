@@ -2,6 +2,7 @@ import { relations } from 'drizzle-orm';
 import {
   boolean,
   integer,
+  jsonb,
   numeric,
   pgEnum,
   pgTable,
@@ -24,6 +25,7 @@ export const statCardEnum = pgEnum('stat_card', [
 ]);
 export const gamePhaseEnum = pgEnum('game_phase', ['A', 'B']);
 export const matchingModeEnum = pgEnum('matching_mode', ['EXACT', 'NORMALIZED', 'NUMERIC']);
+export const questionTypeEnum = pgEnum('question_type', ['TEXT', 'MCQ']);
 export const clashPenaltyModeEnum = pgEnum('clash_penalty_mode', ['FIXED_X', 'TWO_THIRDS_OF_PICK']);
 export const majorityPenaltyModeEnum = pgEnum('majority_penalty_mode', [
   'FIXED_X',
@@ -196,6 +198,8 @@ export const questions = pgTable('questions', {
   prompt: text('prompt').notNull(),
   answerDefinition: text('answer_definition').notNull(),
   matchingMode: matchingModeEnum('matching_mode').notNull().default('NORMALIZED'),
+  questionType: questionTypeEnum('question_type').notNull().default('TEXT'),
+  options: jsonb('options').$type<string[]>(),
   timeLimitSeconds: integer('time_limit_seconds').notNull(),
   mappedCard: powerUpCardEnum('mapped_card'),
   topN: integer('top_n').notNull().default(1),

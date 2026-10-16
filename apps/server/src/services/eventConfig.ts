@@ -316,6 +316,8 @@ export async function getEventBundle(db: Db) {
         prompt: q.prompt,
         answerDefinition: q.answerDefinition,
         matchingMode: q.matchingMode,
+        questionType: q.questionType ?? 'TEXT',
+        options: q.options ?? null,
         timeLimitSeconds: q.timeLimitSeconds,
         mappedCard: q.mappedCard,
         topN: q.topN,
@@ -591,6 +593,8 @@ export type QuestionInput = {
   timeLimitSeconds: number;
   mappedCard: PowerUpCard | null;
   topN: number;
+  questionType?: 'TEXT' | 'MCQ';
+  options?: string[] | null;
 };
 
 function validateQuestionInput(input: QuestionInput): void {
@@ -598,6 +602,17 @@ function validateQuestionInput(input: QuestionInput): void {
   if (!input.answerDefinition.trim()) throw badRequest('Answer definition is required');
   if (!isPositiveInt(input.timeLimitSeconds)) throw badRequest('Time limit must be ≥ 1 second');
   if (!isPositiveInt(input.topN)) throw badRequest('top-N awardees must be ≥ 1');
+
+  if (input.questionType === 'MCQ') {
+    if (!input.options || !Array.isArray(input.options) || input.options.length < 2) {
+      throw badRequest('MCQ questions require at least 2 options');
+    }
+    for (const opt of input.options) {
+      if (typeof opt !== 'string' || !opt.trim()) {
+        throw badRequest('All MCQ options must be non-empty strings');
+      }
+    }
+  }
 }
 
 async function assertMappingFits(db: Db, eventId: string, awards: MappedAward[]) {
@@ -623,6 +638,8 @@ export async function createQuestion(db: Db, setId: string, input: QuestionInput
     prompt: input.prompt.trim(),
     answerDefinition: input.answerDefinition.trim(),
     matchingMode: input.matchingMode,
+    questionType: input.questionType ?? 'TEXT',
+    options: input.options ?? null,
     timeLimitSeconds: input.timeLimitSeconds,
     mappedCard: input.mappedCard,
     topN: input.topN,
@@ -644,6 +661,8 @@ export async function updateQuestion(db: Db, questionId: string, input: Partial<
     prompt: input.prompt ?? question.prompt,
     answerDefinition: input.answerDefinition ?? question.answerDefinition,
     matchingMode: input.matchingMode ?? question.matchingMode,
+    questionType: input.questionType ?? (question.questionType as 'TEXT' | 'MCQ') ?? 'TEXT',
+    options: input.options === undefined ? question.options : input.options,
     timeLimitSeconds: input.timeLimitSeconds ?? question.timeLimitSeconds,
     mappedCard: input.mappedCard === undefined ? question.mappedCard : input.mappedCard,
     topN: input.topN ?? question.topN,
@@ -672,6 +691,8 @@ export async function updateQuestion(db: Db, questionId: string, input: Partial<
       prompt: next.prompt.trim(),
       answerDefinition: next.answerDefinition.trim(),
       matchingMode: next.matchingMode,
+      questionType: next.questionType ?? 'TEXT',
+      options: next.options ?? null,
       timeLimitSeconds: next.timeLimitSeconds,
       mappedCard: next.mappedCard,
       topN: next.topN,

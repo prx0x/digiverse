@@ -44,6 +44,7 @@ export function ensureCsrfCookie(request: FastifyRequest, reply: FastifyReply): 
   if (existing) return existing;
 
   const token = createCsrfToken();
+  request.cookies[config.csrfCookieName] = token;
   reply.setCookie(config.csrfCookieName, token, {
     path: '/',
     httpOnly: false,

@@ -25,18 +25,8 @@ export type BuildAppOptions = {
 
 export async function buildApp({ config, db }: BuildAppOptions) {
   const app = Fastify({
-    logger: {
-      level: config.LOG_LEVEL,
-      redact: {
-        paths: [
-          'req.headers.cookie',
-          'req.headers.authorization',
-          'body.password',
-          'ADMIN_BOOTSTRAP_PASSWORD',
-        ],
-        censor: '[Redacted]',
-      },
-    },
+    logger: true,
+    trustProxy: true
   });
 
   app.decorate('config', config);
