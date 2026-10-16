@@ -4,9 +4,9 @@
 
 **Sources:** **[R]** = `Digiverse_Official_Rules.docx` (original); **[R2]** = `Digiverse_Official_Rules_Updated.docx` (updated, reflects the decisions below — it is now the rulebook of record); **[C]** = `consider.docx`.
 **Status values:** `RESOLVED` · `OPEN` (still needs an organiser answer) · `CONFIG` (resolved, but implemented as an admin setting).
-**Last updated:** 2026-10-15 — decisions received from the organiser (Q1–Q30).
+**Last updated:** 2026-10-16 — Q1–Q30 recorded 2026-10-15; Round 2 answers (OPEN-026 to OPEN-040) recorded 2026-10-16.
 
-**Build Phase 5 gate:** only items marked **Blocks Build Phase 5 = Yes** and still `OPEN` stop work. Currently these are **OPEN-020, OPEN-021, OPEN-022, OPEN-023, OPEN-024** (new, listed at the bottom). Everything from OPEN-001 to OPEN-019 is resolved.
+**Build Phase 5 gate:** only items marked **Blocks Build Phase 5 = Yes** and still `OPEN` stop work. Currently these are **OPEN-020, OPEN-021, OPEN-022**. Everything else from OPEN-001 to OPEN-019 and OPEN-025 to OPEN-040 is resolved, except the non-blocking **OPEN-023, OPEN-024 and OPEN-031**.
 
 ---
 
@@ -32,7 +32,17 @@
 | Rapid fire | MCQ, single correct answer. Winners = first N correct by **server time**. Retries up to an **admin-set attempts limit**. Timestamp ties: **admin setting**. |
 | Scores | May go **negative**, no floor. Stored at full precision; **displayed** to 4 dp, **round half up**. |
 | Leaderboard ties | 1) more **rounds in which the team gained points**; 2) more **power-up cards** (see OPEN-023 for meaning). |
-| Branding | Use the **official GDG logo** once the file is supplied (see OPEN-025). |
+| Starting points | Every team starts Phase 2 with **100 points**. Phase 1 gives cards only. |
+| Card windows | **Shield, Reserve:** Lobby only. **Peek, Reverse:** during selection, any time while it is open (also after locking). Reverse does not change clash or no-pick penalties. |
+| Lobby | Lobby lasts admin-set seconds; **no communication between teams**; no card trading. |
+| Leaderboard | **Always visible** to teams. |
+| Reveal | After each round: clashes → target → buckets → score changes → leaderboard; shows each team's name and pick after the round ends. |
+| Admin powers | Void/re-run a round, manual points/cards adjustment (with reason, logged), extend timer. No picking on behalf of a team. |
+| Connectivity | Team may reconnect and pick within the timer. Server time only. |
+| Cards | Only Shield, Reserve, Peek, Reverse. No extra card sources, no auction, no new cards. |
+| Disputes and ties | Handled by GDG organisers; software shows shared rank. |
+| Audience | No spectator view. |
+| Branding | Use the **official GDG logo** from `apps/web/public/assets/` (see OPEN-025). |
 
 ---
 
@@ -106,7 +116,7 @@
 - A selected number is **final** — no changes (Q20). *UI recommendation (not a rule):* show a confirm step ("Lock in 47?") before submitting so a mis-tap isn't irreversible.
 - **No pick:** team loses **1/10 of its current points** and is excluded from calculations (Q19).
 - Follow-ups on the no-pick penalty (what "current points" means; negative totals) → **OPEN-020**. Shield and no-pick → **OPEN-022**.
-- Cards: pre-round cards (Shield, Reserve) are played in the Lobby; during-round cards (Peek, Reverse) while selection is open.
+- Cards: pre-round cards (Shield, Reserve) are played in the Lobby; during-round cards (Peek, Reverse) while selection is open (OPEN-027). The Lobby has an admin-set length (OPEN-033).
 - Late submissions after the timer ends are rejected (ENGINEERING). **Status:** RESOLVED.
 
 ## OPEN-015 — Statistic definitions — **RESOLVED**
@@ -152,14 +162,112 @@
 - **Status:** OPEN.
 
 ### OPEN-024 — Rapid-fire scoring and no-answer cases  (Blocks Build Phase 5: No; blocks Build Phase 4 only for item 2)
-1. Rapid fire gives **no points**, only cards? (Assumed yes — [R] only describes cards.)
+1. Rapid fire gives **no points**, only cards? (Assumed yes — [R] only describes cards.) *(Settled with OPEN-026: cards only.)*
 2. If **fewer than N teams** answer correctly, only those get the card; if nobody answers correctly, the card is **not awarded** and stays unspent. (Proposed — confirm.)
 3. When a question is mapped to a card whose **supply is already used up**, the admin panel warns and blocks starting that question.
 - **Status:** OPEN (low risk).
 
-### OPEN-025 — Official GDG logo asset  (Blocks Build Phase 5: No)
-- You said the official GDG logo may be used. I cannot download or redraw it. **Action for you:** place the official logo file(s) (SVG preferred, plus a light/dark variant if you have one) in `apps/web/src/assets/brand/` (or tell the agent where they are). Until then the app shows the text wordmark; the `Wordmark` component is built so the file drops in without any other change. Agents must not recreate the logo from memory.
-- **Status:** OPEN (waiting on file).
+### OPEN-025 — Official GDG logo asset — **RESOLVED**
+- The organiser supplied three logo files in **`digiverse/apps/web/public/assets/`** (the old path `apps/web/src/assets/brand/` is no longer used):
+  - **GDG Brackets**
+  - **GDG Centered**
+  - **GDG Left aligned**
+- **Instruction to agents:** list that folder first and use the **exact filenames found there** (do not guess or retype them). Use the files wherever the logo is needed: Brackets as the compact mark, Centered for centred layouts such as login/lobby, Left-aligned for headers. Do **not** redraw, recolour or recreate the logo. The `Wordmark` component should point at these files and keep the text wordmark only as a fallback if a file fails to load.
+- **Status:** RESOLVED (Q40).
+
+---
+
+## Round 2 decisions — answered 2026-10-16
+
+Items answered by the organiser on 2026-10-16. Where the answer did not cover every sub-point, the **proposed default** was used and is marked *(default)* so you can overrule it.
+
+### OPEN-026 — Starting points and Phase 1 → Phase 2 handover — **RESOLVED**
+- Every team starts Phase 2 with **100 points**. Config: `startingPoints = 100`.
+- All teams start at the same score regardless of Phase 1 results; Phase 1 gives **cards only, no points** *(default)*. This also settles OPEN-024.1.
+- Consequence: the no-pick penalty (OPEN-020) is meaningful from round 1 (1/10 of 100 = 10 on a first-round no-pick, if measured at the start of the round).
+- **Status:** RESOLVED (Q26).
+
+### OPEN-027 — Card play windows and Reverse side-effects — **RESOLVED**
+- **Shield and Reserve:** playable **only in the Lobby**.
+- **Peek and Reverse:** playable **only during selection**, and **at any moment while selection is open**, including after the team has already locked its own pick. *(Recorded reading of "at anytime during that round selection"; tell the agent if you meant otherwise.)*
+- **Reverse does not change** the clash penalty or the no-pick penalty.
+- Equal-To under Reverse stays in OPEN-021.1.
+- Config: `cardWindow = { SHIELD: LOBBY, RESERVE: LOBBY, PEEK: SELECTION, REVERSE: SELECTION }`.
+- **Status:** RESOLVED (Q27).
+
+### OPEN-028 — Reserve edge cases — **RESOLVED**
+- Playing Reserve uses the team's one card for that round. The reserved number is the team's pick, so a Reserve player **never** gets the no-pick penalty. An unplayed Reserve carries over. Any number 1–100 may be reserved.
+- **Status:** RESOLVED (all four proposed answers accepted).
+
+### OPEN-029 — Target display and reveal order — **RESOLVED**
+- The target is shown to 4 dp (half up); scoring uses the exact value.
+- Reveal order: clashes → target → buckets → score changes → leaderboard.
+- After the round ends, the reveal shows **each team's name and pick** (never before the round ends).
+- **Status:** RESOLVED. (See OPEN-040 for who sees this screen.)
+
+### OPEN-030 — Teams, rounds, formula sequence, practice round — **RESOLVED (CONFIG)**
+- Decided from the **admin panel**: number of rounds, the formula per round, the lobby time and selection time, and whether a practice round exists.
+- Engineering requirement: the admin can create a round flagged `practice` that is not scored and uses no cards, and scores are unchanged afterwards. Team count and size are not limits in the software.
+- **Status:** RESOLVED (CONFIG).
+
+### OPEN-031 — Final round multiplier and twist rounds — **OPEN**  (Blocks Build Phase 5: No)
+- *Plain-language version:* a "multiplier" makes one round count more. In a **2× round**, every point a team gains or loses in that round is **doubled**, including clash and no-pick penalties. It is used for the last round so that a team in the middle can still catch up, and the leader cannot simply relax.
+- **Question:** do you want a multiplier at all?
+  - **No** → nothing is built; every round counts the same.
+  - **Optional (proposed)** → the admin panel gets a per-round `scoreMultiplier`, which is **1 by default**, so nothing changes unless you set it for a round.
+- **Mystery formula round:** not built, because the rulebook says the formula is announced at the start of the round.
+- **Status:** OPEN (low risk; default if unanswered = **Optional**, multiplier 1).
+
+### OPEN-032 — Leaderboard visibility — **RESOLVED**
+- The **leaderboard is always shown** to teams. No hiding in late rounds, no per-round toggle.
+- **Status:** RESOLVED.
+
+### OPEN-033 — Communication, alliances, collusion — **RESOLVED**
+- The Lobby lasts **X seconds, set by the admin**. When it ends, selection opens.
+- **No communication between teams** during the Lobby or the selection. There is no negotiation window.
+- Card trading between teams is **not** allowed *(default)*.
+- Any breach is judged by the GDGoC organisers under the final-authority clause. The software does not detect it.
+- Config: `lobbySeconds` (per round).
+- **Status:** RESOLVED.
+
+### OPEN-034 — Extra card sources and new cards — **RESOLVED**
+- **No** additional ways to earn cards, **no** auction, and **no** new cards (Spy, Double Down, Mirror, Jammer). Only Shield, Reserve, Peek and Reverse exist, earned in Phase 1.
+- **Status:** RESOLVED.
+
+### OPEN-035 — Phase 1 details — **RESOLVED (CONFIG)**
+- Number of questions, time per question, attempts, the winners per question, and the card mapped to each question are all set from the **admin panel**.
+- Questions go live for all teams at the same moment *(default)*. No wrong-attempt penalty *(default)*; `maxAttempts` per OPEN-010.
+- **Status:** RESOLVED (CONFIG).
+
+### OPEN-036 — Winners, prizes, rank display — **RESOLVED**
+- The software ranks teams by points, then the two tiebreakers (OPEN-017/023). It does **not** decide how many teams win.
+- If teams are still tied after both tiebreakers, the **GDG organisers decide on the spot**. The software just shows them with a shared rank.
+- No special awards in software.
+- **Status:** RESOLVED.
+
+### OPEN-037 — Admin overrides and mistakes — **RESOLVED**
+- The admin can **void or re-run a round**; the ledger keeps the voided entries as an audit trail.
+- The admin can **manually adjust a team's points or cards**, with a required reason, and every change is logged (who, when, why).
+- The admin can **extend the timer** after a round has started; it is logged and cannot shorten below the time already elapsed.
+- The admin does **not** submit a pick on behalf of a team *(default; the organiser answered "yes" to the group, so tell the agent if you do want this)*. For a device failure the admin may void that team's participation for the round with no penalty.
+- **Status:** RESOLVED (Q37).
+
+### OPEN-038 — Connectivity and device problems — **RESOLVED**
+- A team whose device disconnects **may reconnect and still pick within the timer**.
+- No page loaded by the deadline = normal no-pick penalty, unless the admin voids that team's round (OPEN-037) *(default)*.
+- Only **server time** counts *(default)*.
+- **Status:** RESOLVED.
+
+### OPEN-039 — Disputes and rulings — **RESOLVED**
+- **Managed by the organisers** on the day; there is no dispute workflow in the software.
+- Teams can see a per-round score breakdown *(default)* (clash, majority, minority, exact, no-pick).
+- **Status:** RESOLVED.
+
+### OPEN-040 — Audience and branding — **RESOLVED**
+- **No spectator or audience view** and no audience poll.
+- The reveal screen from OPEN-029 is the organisers' screen to project; nothing is built for audience login.
+- Use the official **GDG logo** where required. See OPEN-025 for the file locations.
+- **Status:** RESOLVED.
 
 ---
 
@@ -197,5 +305,20 @@
 | 013 | Peek <50, excl. own, snapshot | Organiser | 2026-10-15 | — |
 | 014 | Admin starts rounds manually, sets length; pick final; no-pick = −1/10 current points | Organiser | 2026-10-15 | `noPickPenaltyFraction=1/10` (details in OPEN-020) |
 | 017 | Tiebreakers: rounds with gain, then power-up cards; else share rank | Organiser | 2026-10-15 | meaning in OPEN-023 |
+| 025 | Official GDG logo files supplied in `apps/web/public/assets/` | Organiser | 2026-10-16 | Brackets / Centered / Left aligned |
+| 026 | Start Phase 2 with 100 points; Phase 1 gives cards only | Organiser | 2026-10-16 | `startingPoints=100` |
+| 027 | Shield/Reserve Lobby only; Peek/Reverse during selection any time; Reverse does not affect clash/no-pick | Organiser | 2026-10-16 | `cardWindow` |
+| 028 | Reserve counts as a pick; carries over if unplayed | Organiser | 2026-10-16 | — |
+| 029 | Reveal order fixed; names and picks shown after round | Organiser | 2026-10-16 | — |
+| 030 | Rounds, formulas, practice round set from admin panel | Organiser | 2026-10-16 | `practice` flag |
+| 032 | Leaderboard always visible | Organiser | 2026-10-16 | — |
+| 033 | Admin-set lobby seconds; no inter-team communication; no trading | Organiser | 2026-10-16 | `lobbySeconds` |
+| 034 | No extra cards or card sources | Organiser | 2026-10-16 | — |
+| 035 | Phase 1 settings from admin panel | Organiser | 2026-10-16 | — |
+| 036 | Ties beyond tiebreakers decided by GDG organisers | Organiser | 2026-10-16 | shared rank |
+| 037 | Admin can void/re-run rounds, adjust points/cards (logged), extend timer | Organiser | 2026-10-16 | audit log |
+| 038 | Reconnect and pick within timer allowed | Organiser | 2026-10-16 | — |
+| 039 | Disputes managed by organisers | Organiser | 2026-10-16 | — |
+| 040 | No spectator view; use GDG logo | Organiser | 2026-10-16 | — |
 
 When a new answer arrives: update the entry, add a log row, set the config, add/adjust engine tests, and note it in `PROGRESS.md`.
