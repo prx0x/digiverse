@@ -151,16 +151,16 @@ describe('packages/game-engine unit tests', () => {
   });
 
   describe('Round scoring (scoreRound)', () => {
-    it('scores normal round: minority wins pick, majority pays |Target - pick| / 2', () => {
+    it('scores normal round: minority wins |Target - pick| / pick, majority pays same', () => {
       // 3 teams: t1 picks 10, t2 picks 20, t3 picks 90.
       // Mean = (10 + 20 + 90)/3 = 120/3 = 40.
       // Target = 40.
       // Less bucket (<40): t1(10), t2(20) -> 2 teams (MAJORITY)
       // Greater bucket (>40): t3(90) -> 1 team (MINORITY)
       // Scoring:
-      // t3 (minority): wins +90
-      // t1 (majority): pays |40 - 10| / 2 = 30 / 2 = 15 deduction
-      // t2 (majority): pays |40 - 20| / 2 = 20 / 2 = 10 deduction
+      // t3 (minority): wins |40 - 90| / 90 = 50/90
+      // t1 (majority): pays |40 - 10| / 10 = 3 deduction
+      // t2 (majority): pays |40 - 20| / 20 = 1 deduction
       const res = scoreRound({
         statCard: 'MEAN',
         picks: [
@@ -177,24 +177,27 @@ describe('packages/game-engine unit tests', () => {
       expect(res.majorityBucket).toBe('LESS');
       expect(res.isReversed).toBe(false);
 
-      expect(res.teamSummaries.t3.delta).toBe('90');
-      expect(res.teamSummaries.t3.finalScore).toBe('190');
+      const minorityAward = '0.555555555555555555555555555555555555555555555555555555555556';
+      expect(res.teamSummaries.t3.delta).toBe(minorityAward);
+      expect(res.teamSummaries.t3.finalScore).toBe(
+        '100.555555555555555555555555555555555555555555555555555555556',
+      );
 
-      expect(res.teamSummaries.t1.delta).toBe('-15');
-      expect(res.teamSummaries.t1.finalScore).toBe('85');
+      expect(res.teamSummaries.t1.delta).toBe('-3');
+      expect(res.teamSummaries.t1.finalScore).toBe('97');
 
-      expect(res.teamSummaries.t2.delta).toBe('-10');
-      expect(res.teamSummaries.t2.finalScore).toBe('90');
+      expect(res.teamSummaries.t2.delta).toBe('-1');
+      expect(res.teamSummaries.t2.finalScore).toBe('99');
     });
 
-    it('scores exact match: gets 2x pick', () => {
+    it('scores exact match: gets +pick', () => {
       // t1 picks 10, t2 picks 30, t3 picks 20.
       // Midrange: (10 + 30)/2 = 20.
       // t3 picked 20 = EXACT MATCH!
       // t1 (<20) = 1 team
       // t2 (>20) = 1 team
       // Equal > and < counts -> TIE! both score 0.
-      // t3 gets 2x pick = 2 * 20 = +40.
+      // t3 gets +pick = +20.
       const res = scoreRound({
         statCard: 'MIDRANGE',
         picks: [
@@ -208,7 +211,7 @@ describe('packages/game-engine unit tests', () => {
 
       expect(res.target).toBe('20');
       expect(res.majorityBucket).toBe('TIE');
-      expect(res.teamSummaries.t3.delta).toBe('40');
+      expect(res.teamSummaries.t3.delta).toBe('20');
       expect(res.teamSummaries.t1.delta).toBe('0');
       expect(res.teamSummaries.t2.delta).toBe('0');
     });
@@ -217,9 +220,9 @@ describe('packages/game-engine unit tests', () => {
       // Same picks as first test: t1(10), t2(20) [majority], t3(90) [minority].
       // Mean = 40.
       // 1 Reverse played:
-      // Flipped majority (LESS: t1, t2) wins its picks!
-      // t1 gets +10, t2 gets +20.
-      // Flipped minority (GREATER: t3) pays deduction |40 - 90|/2 = 50/2 = 25!
+      // Flipped majority (LESS: t1, t2) wins |Target - pick| / pick
+      // t1 gets +3, t2 gets +1.
+      // Flipped minority (GREATER: t3) pays |40 - 90|/90 = 50/90
       const res1 = scoreRound({
         statCard: 'MEAN',
         picks: [
@@ -234,9 +237,11 @@ describe('packages/game-engine unit tests', () => {
 
       expect(res1.reverseCount).toBe(1);
       expect(res1.isReversed).toBe(true);
-      expect(res1.teamSummaries.t1.delta).toBe('10');
-      expect(res1.teamSummaries.t2.delta).toBe('20');
-      expect(res1.teamSummaries.t3.delta).toBe('-25');
+      expect(res1.teamSummaries.t1.delta).toBe('3');
+      expect(res1.teamSummaries.t2.delta).toBe('1');
+      expect(res1.teamSummaries.t3.delta).toBe(
+        '-0.555555555555555555555555555555555555555555555555555555555556',
+      );
 
       // 2 Reverses played: even count => normal mode!
       const res2 = scoreRound({
@@ -255,7 +260,9 @@ describe('packages/game-engine unit tests', () => {
       });
       expect(res2.reverseCount).toBe(2);
       expect(res2.isReversed).toBe(false);
-      expect(res2.teamSummaries.t3.delta).toBe('90'); // normal minority win
+      expect(res2.teamSummaries.t3.delta).toBe(
+        '0.555555555555555555555555555555555555555555555555555555555556',
+      ); // normal minority win
     });
 
     it('Shield nullifies clash penalty, majority deduction, and reversed minority deduction', () => {

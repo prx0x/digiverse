@@ -38,7 +38,7 @@ Information classes used in all docs:
 - Animated transition from stat card to palette ([C]).
 - Admin panel: map power-up card to question; top-X teams (sorted by time, then correctness) get the card; number of question sets; number of rounds in **both** game phases; which round has which stat card; live view of who picked what, "every detail" ([C]).
 - Rapid-fire questions are decided later via admin panel — never hardcoded ([C]).
-- Scoring ([R]): Equal-To = 2× selected number; Minority bucket = + selected number; Majority bucket = deduction; tie between > and < bucket sizes ⇒ all teams in those two buckets score 0 (equal-To teams still get 2×). Reverse flips Majority/Minority win/lose.
+- Scoring ([R]): Equal-To = + selected number; Minority bucket = + \|Target − pick\| / pick; Majority bucket = − \|Target − pick\| / pick; tie between > and < bucket sizes ⇒ all teams in those two buckets score 0 (equal-To teams still get +pick). Reverse flips Majority/Minority win/lose (same magnitudes).
 - Winning ([R]): highest overall points after all rounds.
 
 ## 5. Design system rules (Bauhaus) — established in Build Phase 1

@@ -406,8 +406,8 @@ export function AdminSettingsPage() {
                     {mode === 'FIXED_X'
                       ? 'Fixed penalty X points ([R] rulebook)'
                       : mode === 'HALF_ABS_DISTANCE'
-                      ? '|StatValue - Pick| / 2 ([C] absolute distance deduction)'
-                      : '(StatValue - Pick) / 2 ([C] literal signed distance)'}
+                      ? '|StatValue - Pick| / Pick (relative absolute distance deduction)'
+                      : '(StatValue - Pick) / Pick (literal signed relative distance)'}
                   </option>
                 ))}
               </Select>
@@ -443,7 +443,9 @@ export function AdminSettingsPage() {
                 <option value="">(Unset)</option>
                 {REVERSED_MAJORITY_REWARDS.map((r) => (
                   <option key={r} value={r}>
-                    {r === 'PICK' ? 'Award their selected pick (symmetric to minority)' : 'Other'}
+                    {r === 'PICK'
+                      ? 'Award |StatValue - Pick| / Pick (symmetric to minority)'
+                      : 'Other'}
                   </option>
                 ))}
               </Select>
@@ -479,7 +481,7 @@ export function AdminSettingsPage() {
                 }
               >
                 <option value="">(Unset)</option>
-                <option value="false">No (Equal-To always gets 2× pick)</option>
+                <option value="false">No (Equal-To always gets +pick)</option>
                 <option value="true">Yes</option>
               </Select>
               <Select

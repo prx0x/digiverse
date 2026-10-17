@@ -15,12 +15,14 @@
 | Topic | Decision |
 |---|---|
 | Clash penalty | Each clashing team loses **(2/3) × its own pick**. Clashing picks are discarded from all calculations. |
-| Majority deduction | **\|Target − pick\| / 2**, applied as a deduction (positive magnitude). |
+| Majority deduction | **\|Target − pick\| / pick**, applied as a deduction (positive magnitude). |
+| Minority award | **\|Target − pick\| / pick**, applied as a positive award. |
+| Equal-To award | **+ pick** (selected number). |
 | Penalty "X" | Not used by the above formulas. Retained as an optional admin value that organisers may change per round (see OPEN-020). |
 | Standard deviation | **Population** (divide by N). |
 | Equal To | **Exact equality only** (no rounding of the target). |
 | All teams clash | No target. Every clashing team receives the clash penalty. No other scoring. |
-| Empty bucket | The empty bucket is the minority; the other bucket is majority and is penalised; nobody gains from minority. Equal-To teams still get 2×. |
+| Empty bucket | The empty bucket is the minority; the other bucket is majority and is penalised; nobody gains from minority. Equal-To teams still get +pick. |
 | No pick | Team loses **1/10 of its current points**; excluded from calculations. |
 | Pick is final | A selected number **cannot be changed** for that round. |
 | Round control | Admin starts each round **manually** and sets that round's **selection length**. |
@@ -28,7 +30,7 @@
 | Shield | Covers **all three**: clash penalty, majority deduction, reversed-minority deduction. Consumed on play even if not needed. |
 | Reserve | Chosen in Lobby; becomes the holder's pick; **greyed out (unselectable)** for all other teams. |
 | Peek | Strictly **< 50** (50 excluded), **excludes own pick**, **snapshot** at the moment of play. Returns a count only. |
-| Reverse | Global effect for all teams; **odd** count ⇒ flipped, **even** ⇒ normal; flipped majority **wins its pick**; flipped minority **pays \|Target − pick\| / 2**; playable until the selection timer ends. |
+| Reverse | Global effect for all teams; **odd** count ⇒ flipped, **even** ⇒ normal; flipped majority **wins \|Target − pick\| / pick**; flipped minority **pays \|Target − pick\| / pick**; playable until the selection timer ends. |
 | Rapid fire | MCQ, single correct answer. Winners = first N correct by **server time**. Retries up to an **admin-set attempts limit**. Timestamp ties: **admin setting**. |
 | Scores | May go **negative**, no floor. Stored at full precision; **displayed** to 4 dp, **round half up**. |
 | Leaderboard ties | 1) more **rounds in which the team gained points**; 2) more **power-up cards** (see OPEN-023 for meaning). |
@@ -52,11 +54,11 @@
 
 ## OPEN-002 — Majority deduction amount and sign — **RESOLVED**
 - **Conflict:** [R] fixed X vs [C] `(StatisticalValue − pick)/2` (sign problem).
-- **Decision:** deduction = `|Target − pick| / 2`, always a positive magnitude subtracted from the score. **Status:** RESOLVED (Q2b).
+- **Decision (updated):** deduction = `|Target − pick| / pick`, always a positive magnitude subtracted from the score. Minority award uses the same magnitude `|Target − pick| / pick`. Equal-To award = `+ pick` (was previously `2 × pick`). **Status:** RESOLVED (Q2b; formula refresh).
 - Ledger convention: store as a negative delta with component `MAJORITY_DEDUCTION`.
 
 ## OPEN-003 — Reverse card — **RESOLVED**
-- Global effect (Q6); even count ⇒ normal, odd ⇒ flipped (Q7); flipped majority wins points equal to its pick (Q8); flipped minority pays the same deduction as OPEN-002 (Q9); playable until selection timer ends (Q10).
+- Global effect (Q6); even count ⇒ normal, odd ⇒ flipped (Q7); flipped majority wins `|Target − pick| / pick` (same magnitude as minority award) (Q8); flipped minority pays the same deduction as OPEN-002 (Q9); playable until selection timer ends (Q10).
 - **Total Reverse cards** and per-team limits: supply set by admin (Q5); a team plays at most one card per round (Q25), so several Reverse activations in a round come from different teams.
 - Not yet answered → **OPEN-021** (Equal-To bucket and tiebreaker under Reverse; one-empty-bucket under Reverse).
 - **Status:** RESOLVED, with follow-ups in OPEN-021.
@@ -75,7 +77,7 @@
 - **Exactly one valid pick:** target is computed normally (Midrange = that pick; σ = 0); that team is Equal To for Mean, Midrange, Geometric mean; for Two-thirds, target < pick ⇒ team is alone in `>`. Engine handles via normal rules. **Status:** RESOLVED.
 
 ## OPEN-007 — Bucket edge cases and tiebreaker — **RESOLVED**
-- One bucket empty (Q18 yes): empty bucket = minority (fewest), non-empty = majority and is penalised; nobody gains from minority. Equal-To teams still score 2×.
+- One bucket empty (Q18 yes): empty bucket = minority (fewest), non-empty = majority and is penalised; nobody gains from minority. Equal-To teams still score +pick.
 - Both `>` and `<` empty: only Equal-To scoring (and clash/no-pick penalties).
 - Equal counts (both non-empty): 0 points for teams in both buckets; Equal-To unaffected ([R]).
 - Clashing teams are not counted in bucket sizes. **Status:** RESOLVED.
@@ -146,9 +148,9 @@
 - **Status:** OPEN.
 
 ### OPEN-021 — Reverse interactions  (Blocks Build Phase 5: Yes)
-1. Under Reverse, the **Equal-To bucket** still gets 2× (proposed: yes, Reverse only flips the `>`/`<` buckets).
+1. Under Reverse, the **Equal-To bucket** still gets +pick (proposed: yes, Reverse only flips the `>`/`<` buckets).
 2. Under Reverse, the **tie rule** (equal `>`/`<` counts ⇒ both score 0) still applies (proposed: yes).
-3. Under Reverse with **one empty bucket**: the empty bucket is the minority, so the non-empty one is the majority and, being flipped, **wins points equal to its picks**, while the empty minority pays nothing. (Derived from your answers — confirm.)
+3. Under Reverse with **one empty bucket**: the empty bucket is the minority, so the non-empty one is the majority and, being flipped, **wins \|Target − pick\| / pick**, while the empty minority pays nothing. (Derived from your answers — confirm.)
 4. If **Shield** is played by a team in the *flipped* minority, it nullifies that deduction (covered by your Q11 "all three") — assumed yes.
 - **Status:** OPEN (proposed answers in brackets).
 
@@ -281,7 +283,7 @@ Items answered by the organiser on 2026-10-16. Where the answer did not cover ev
 | Round flow, step 2 | Palette randomised per team per round; pick is final; one card per round max. |
 | Round flow, step 3 | Clash penalty = 2/3 × pick; all-clash ⇒ no target, no other scoring. |
 | Round flow, step 5 | Equal To is exact equality. |
-| Scoring Rules | Majority deduction = \|Target − pick\|/2; new Empty Bucket, No Selection, and Points & Precision rules. |
+| Scoring Rules | Majority deduction = \|Target − pick\|/pick; minority award = \|Target − pick\|/pick; Equal-To = +pick; Empty Bucket, No Selection, and Points & Precision rules. |
 | Power-Up Cards | Admin-set supply; multiples allowed; single use; one per round; carry-over. Shield covers three cases; Reserve greyed out for others; Peek definition; Reverse parity and global effect. |
 | Winning the Game | Added tiebreakers. |
 | Footnote 1 | "X points" → "penalty values" may be determined by organisers during the game. |
@@ -291,8 +293,8 @@ Items answered by the organiser on 2026-10-16. Where the answer did not cover ev
 | ID | Decision | Decided by | Date | Config / notes |
 |----|----------|-----------|------|----------------|
 | 001 | Clash = 2/3 × pick | Organiser | 2026-10-15 | `clashPenalty=TWO_THIRDS_OF_PICK` |
-| 002 | Majority = \|Target−pick\|/2 | Organiser | 2026-10-15 | `majorityPenalty=HALF_ABS_DISTANCE` |
-| 003 | Reverse global, parity, flipped majority wins pick, flipped minority pays 002 | Organiser | 2026-10-15 | `reverse.parity=true`, `reversedMajorityReward=PICK` |
+| 002 | Majority = \|Target−pick\|/pick; minority = same; Equal-To = +pick | Organiser | 2026-10-15 (formula refresh) | `majorityPenalty=HALF_ABS_DISTANCE` |
+| 003 | Reverse global, parity, flipped majority wins \|S−n\|/n, flipped minority pays 002 | Organiser | 2026-10-15 (formula refresh) | `reverse.parity=true`, `reversedMajorityReward=PICK` |
 | 004 | Shield covers clash, majority, reversed-minority; consumed on play | Organiser | 2026-10-15 | `shieldCovers={clash,majority,reversedMinority}=true` |
 | 005 | Population σ | Organiser | 2026-10-15 | `stdDevMode=POPULATION` |
 | 006 | All-clash: all get clash penalty, no other scoring | Organiser | 2026-10-15 | `NO_TARGET` outcome |

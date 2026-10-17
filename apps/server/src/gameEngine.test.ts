@@ -322,15 +322,19 @@ describe('Build Phase 5 — Main Game Engine and Scoring Integration', () => {
     expect(scoreData.displayTarget).toBe('40.0000');
     expect(scoreData.majorityBucket).toBe('LESS');
 
-    // Team C (minority): wins +90 -> 100 + 90 = 190
-    // Team A (majority): pays |40 - 10|/2 = 15 deduction -> 100 - 15 = 85
-    // Team B (majority): pays |40 - 20|/2 = 10 deduction -> 100 - 10 = 90
-    expect(scoreData.teamSummaries[teamC.id].delta).toBe('90');
-    expect(scoreData.teamSummaries[teamC.id].finalScore).toBe('190');
-    expect(scoreData.teamSummaries[teamA.id].delta).toBe('-15');
-    expect(scoreData.teamSummaries[teamA.id].finalScore).toBe('85');
-    expect(scoreData.teamSummaries[teamB.id].delta).toBe('-10');
-    expect(scoreData.teamSummaries[teamB.id].finalScore).toBe('90');
+    // Team C (minority): wins |40 - 90|/90 = 50/90
+    // Team A (majority): pays |40 - 10|/10 = 3 deduction -> 97
+    // Team B (majority): pays |40 - 20|/20 = 1 deduction -> 99
+    const minorityAward =
+      '0.555555555555555555555555555555555555555555555555555555555556';
+    expect(scoreData.teamSummaries[teamC.id].delta).toBe(minorityAward);
+    expect(scoreData.teamSummaries[teamC.id].finalScore).toBe(
+      '100.555555555555555555555555555555555555555555555555555555556',
+    );
+    expect(scoreData.teamSummaries[teamA.id].delta).toBe('-3');
+    expect(scoreData.teamSummaries[teamA.id].finalScore).toBe('97');
+    expect(scoreData.teamSummaries[teamB.id].delta).toBe('-1');
+    expect(scoreData.teamSummaries[teamB.id].finalScore).toBe('99');
 
     // 6. Check Leaderboard
     const lbRes = await app.inject({
@@ -340,11 +344,11 @@ describe('Build Phase 5 — Main Game Engine and Scoring Integration', () => {
     expect(lbRes.statusCode).toBe(200);
     const leaderboard = lbRes.json().leaderboard;
     expect(leaderboard[0].teamId).toBe(teamC.id);
-    expect(leaderboard[0].displayScore).toBe('190.0000');
+    expect(leaderboard[0].displayScore).toBe('100.5556');
     expect(leaderboard[1].teamId).toBe(teamB.id);
-    expect(leaderboard[1].displayScore).toBe('90.0000');
+    expect(leaderboard[1].displayScore).toBe('99.0000');
     expect(leaderboard[2].teamId).toBe(teamA.id);
-    expect(leaderboard[2].displayScore).toBe('85.0000');
+    expect(leaderboard[2].displayScore).toBe('97.0000');
   });
 
   it('handles power-up cards (Shield, Reserve, Peek, Reverse) and enforces rules', async () => {

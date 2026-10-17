@@ -154,9 +154,9 @@ export function scoreRound(params: ScoreRoundParams): RoundScoreResult {
   let majorityBucket: 'GREATER' | 'LESS' | 'TIE' | 'EMPTY' = 'EMPTY';
 
   if (!isDegenerate && targetDecimal !== null) {
-    // 5a. Equal-To bucket (always gets 2x pick, even under Reverse per OPEN-021.1)
+    // 5a. Equal-To bucket (always gets +pick, even under Reverse per OPEN-021.1)
     for (const item of buckets.equal) {
-      const award = new Decimal(item.pick).times(2);
+      const award = new Decimal(item.pick);
       addDelta(item.teamId, award, 'EXACT_MATCH_AWARD', `Matched target exactly with ${item.pick}`);
 
       teamSummaries[item.teamId] = {
@@ -209,18 +209,22 @@ export function scoreRound(params: ScoreRoundParams): RoundScoreResult {
       const shieldCoversMajority = config.shieldCoversMajority ?? true;
       const shieldCoversReversedMinority = config.shieldCoversReversedMinority ?? true;
 
+      // Relative distance magnitude: |Target - pick| / pick
+      const calcRelativeDistance = (pick: number): Decimal =>
+        targetDecimal.minus(pick).abs().dividedBy(pick);
+
       const calcDeduction = (pick: number): Decimal => {
         if (majorityPenaltyMode === 'FIXED_X') {
           return new Decimal(config.majorityPenaltyX ?? 0);
         }
-        // HALF_ABS_DISTANCE: |Target - pick| / 2
-        return targetDecimal.minus(pick).abs().dividedBy(2);
+        // HALF_ABS_DISTANCE (and other non-FIXED modes): |Target - pick| / pick
+        return calcRelativeDistance(pick);
       };
 
       if (!isReversed) {
-        // Normal mode: Minority wins pick, Majority loses |Target - pick| / 2
+        // Normal mode: Minority wins |Target - pick| / pick, Majority loses |Target - pick| / pick
         for (const item of minorityItems) {
-          const award = new Decimal(item.pick);
+          const award = calcRelativeDistance(item.pick);
           addDelta(item.teamId, award, 'MINORITY_AWARD', `Minority bucket win with ${item.pick}`);
           teamSummaries[item.teamId] = {
             teamId: item.teamId,
@@ -262,9 +266,10 @@ export function scoreRound(params: ScoreRoundParams): RoundScoreResult {
           };
         }
       } else {
-        // Reversed mode: Flipped majority wins pick, Flipped minority loses |Target - pick| / 2
+        // Reversed mode: Flipped majority wins |Target - pick| / pick,
+        // Flipped minority loses |Target - pick| / pick
         for (const item of majorityItems) {
-          const award = new Decimal(item.pick);
+          const award = calcRelativeDistance(item.pick);
           addDelta(
             item.teamId,
             award,
