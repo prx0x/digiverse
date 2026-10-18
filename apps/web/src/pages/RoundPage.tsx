@@ -74,7 +74,10 @@ export function RoundPage() {
       setError(null);
       if (res.myPick?.pick) {
         setSelected(res.myPick.pick);
+      } else {
+        setSelected(null);
       }
+      setConfirming(false);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load round');
     } finally {

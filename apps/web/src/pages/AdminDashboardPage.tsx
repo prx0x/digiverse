@@ -1,9 +1,20 @@
+import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Badge, ErrorState, LoadingState, Panel, StatusPill } from '@/components';
+import { Badge, Button, ErrorState, LoadingState, Panel, StatusPill } from '@/components';
 import { useEventConfig } from '@/hooks/useEventConfig';
+import { getAdminRoundCurrentApi, type AdminRoundState } from '@/api/rounds';
 
 export function AdminDashboardPage() {
   const { bundle, loading, error, refresh } = useEventConfig();
+  const [liveRound, setLiveRound] = useState<AdminRoundState | null>(null);
+
+  useEffect(() => {
+    if (bundle?.event.status === 'LIVE') {
+      getAdminRoundCurrentApi()
+        .then(setLiveRound)
+        .catch(() => {});
+    }
+  }, [bundle?.event.status]);
 
   if (loading) return <LoadingState title="Loading dashboard" />;
   if (error || !bundle) {
@@ -72,6 +83,7 @@ export function AdminDashboardPage() {
     },
     {
       id: 'live-round',
+      path: '/admin/rounds',
       title: 'Live Round Controller',
       blurb: `Start, open selection, resolve and void Game Phase B rounds. Live pick submissions board.`,
       accent: 'red' as const,
@@ -115,6 +127,53 @@ export function AdminDashboardPage() {
         />
       </header>
 
+      {liveRound?.round && (
+        <Panel
+          title={`Game Phase B — Live Round Status (Round ${liveRound.round.roundNumber})`}
+          accent="red"
+        >
+          <div className="row" style={{ justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 'var(--space-2)' }}>
+            <div>
+              <p style={{ margin: 0, fontWeight: 600 }}>
+                Status:{' '}
+                <StatusPill
+                  status={
+                    liveRound.round.status === 'RESULT'
+                      ? 'done'
+                      : liveRound.round.status === 'SELECTION'
+                        ? 'live'
+                        : 'waiting'
+                  }
+                  label={
+                    liveRound.round.status === 'RESULT'
+                      ? `Round ${liveRound.round.roundNumber} Complete`
+                      : liveRound.round.status
+                  }
+                />{' '}
+                <span style={{ marginLeft: 'var(--space-2)' }}>
+                  Stat Card: <strong>{liveRound.round.statCard}</strong>
+                </span>
+                {liveRound.round.status === 'RESULT' && liveRound.round.displayTarget && (
+                  <span style={{ marginLeft: 'var(--space-2)' }}>
+                    Target: <strong>{liveRound.round.displayTarget}</strong>
+                  </span>
+                )}
+              </p>
+            </div>
+            <div className="row" style={{ gap: 'var(--space-2)', alignItems: 'center' }}>
+              {liveRound.round.status === 'RESULT' && (
+                <Link to="/admin/rounds">
+                  <Button>Start Round {liveRound.round.roundNumber + 1} (Lobby) →</Button>
+                </Link>
+              )}
+              <Link to="/admin/rounds" style={{ fontWeight: 600 }}>
+                Open Round Controller →
+              </Link>
+            </div>
+          </div>
+        </Panel>
+      )}
+
       {readiness.issues.length > 0 && (
         <Panel title="Configuration Readiness Alert" accent="yellow">
           <p style={{ margin: '0 0 var(--space-2) 0', fontWeight: 600 }}>
@@ -138,7 +197,7 @@ export function AdminDashboardPage() {
                 </Badge>
               </div>
               <p style={{ minHeight: '3rem' }}>{section.blurb}</p>
-              <Link to={`/admin/${section.id}`} style={{ fontWeight: 600 }}>
+              <Link to={section.path ?? `/admin/${section.id}`} style={{ fontWeight: 600 }}>
                 Open section →
               </Link>
             </Panel>

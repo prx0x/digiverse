@@ -54,6 +54,7 @@ export function App() {
               <Route path="rapid-fire" element={<AdminRapidFirePage />} />
               <Route path="card-mapping" element={<AdminCardMappingPage />} />
               <Route path="rounds" element={<AdminRoundsPage />} />
+              <Route path="live-round" element={<Navigate to="/admin/rounds" replace />} />
               <Route path="settings" element={<AdminSettingsPage />} />
               <Route path="live" element={<AdminLiveMonitorPage />} />
               <Route path="leaderboard" element={<AdminLeaderboardPage />} />

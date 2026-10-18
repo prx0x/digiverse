@@ -16,6 +16,7 @@ import {
   openSelectionApi,
   resolveRoundApi,
   extendTimerApi,
+  startRoundApi,
   voidRoundApi,
   type AdminRoundState,
 } from '@/api/rounds';
@@ -119,6 +120,21 @@ export function AdminLiveMonitorPage() {
       setActionNotice(`Round voided. Reason: ${reason}`);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to void round');
+    } finally {
+      setActionBusy(false);
+    }
+  }
+
+  async function handleStartNextRound() {
+    setActionBusy(true);
+    setActionNotice(null);
+    try {
+      const nextNum = activeRound ? activeRound.roundNumber + 1 : 1;
+      await startRoundApi({ roundNumber: nextNum });
+      await loadState();
+      setActionNotice(`Round ${nextNum} started in Lobby.`);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to start next round');
     } finally {
       setActionBusy(false);
     }
@@ -288,6 +304,15 @@ export function AdminLiveMonitorPage() {
                 </>
               ) : null}
 
+              {activeRound.status === 'RESULT' ? (
+                <Button
+                  disabled={actionBusy}
+                  onClick={handleStartNextRound}
+                >
+                  Start Round {activeRound.roundNumber + 1} (Lobby) →
+                </Button>
+              ) : null}
+
               <Button
                 variant="ghost"
                 disabled={actionBusy}
@@ -344,7 +369,9 @@ export function AdminLiveMonitorPage() {
       ) : (
         <EmptyState
           title="No Active Main Game Round"
-          description="Go to Rounds & Stat Cards to launch the next round of Game Phase B."
+          description="Go to Rounds & Stat Cards or start the round directly."
+          actionLabel="Start Round 1 (Lobby)"
+          onAction={handleStartNextRound}
         />
       )}
     </div>

@@ -1,0 +1,7 @@
+add animation for calculation of score
+correct answer shown at the rapid fire
+glitch of number selector
+add number line and teams to show which bucket did what
+more cards
+google oauth
+

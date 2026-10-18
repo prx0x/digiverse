@@ -3,7 +3,6 @@ import { STAT_CARDS, type StatCard } from '@digiverse/shared';
 import {
   Badge,
   Button,
-  EmptyState,
   ErrorState,
   Input,
   LoadingState,
@@ -79,6 +78,26 @@ export function AdminRoundsPage() {
     };
   }, [subscribe]);
 
+  const activeRound = liveRound?.active && liveRound.round ? liveRound.round : null;
+  const nextRoundNumber = activeRound
+    ? activeRound.status === 'RESULT' || activeRound.status === 'ABORTED'
+      ? activeRound.roundNumber + 1
+      : activeRound.roundNumber
+    : 1;
+
+  useEffect(() => {
+    if (!bundle) return;
+    const cfg = bundle.rounds.find(
+      (r) => r.gamePhase === 'B' && r.roundNumber === nextRoundNumber,
+    );
+    if (cfg?.statCard) {
+      setSelectedStatCard(cfg.statCard);
+    }
+    if (cfg?.timerSeconds) {
+      setCustomSelectionSecs(cfg.timerSeconds);
+    }
+  }, [nextRoundNumber, bundle]);
+
   if (loading) return <LoadingState title="Loading rounds" />;
   if (error || !bundle) {
     return (
@@ -130,18 +149,28 @@ export function AdminRoundsPage() {
     }
   }
 
-  async function handleStartRound() {
+  async function handleStartRound(overrideConfig?: {
+    roundNumber?: number;
+    statCard?: StatCard;
+    lobbySeconds?: number;
+    selectionSeconds?: number;
+    isPractice?: boolean;
+    scoreMultiplier?: number;
+  }) {
     setActionBusy(true);
     setLiveError(null);
     try {
+      const targetRoundNum = overrideConfig?.roundNumber ?? nextRoundNumber;
       await startRoundApi({
-        statCard: selectedStatCard,
-        lobbySeconds: customLobbySecs,
-        selectionSeconds: customSelectionSecs,
-        isPractice,
-        scoreMultiplier,
+        roundNumber: targetRoundNum,
+        statCard: overrideConfig?.statCard ?? selectedStatCard,
+        lobbySeconds: overrideConfig?.lobbySeconds ?? customLobbySecs,
+        selectionSeconds: overrideConfig?.selectionSeconds ?? customSelectionSecs,
+        isPractice: overrideConfig?.isPractice ?? isPractice,
+        scoreMultiplier: overrideConfig?.scoreMultiplier ?? scoreMultiplier,
       });
       await loadLiveRound();
+      setNotice(`Round ${targetRoundNum} started in Lobby.`);
     } catch (err) {
       setLiveError(err instanceof Error ? err.message : 'Failed to start round');
     } finally {
@@ -199,7 +228,13 @@ export function AdminRoundsPage() {
     }
   }
 
-  const activeRound = liveRound?.active && liveRound.round ? liveRound.round : null;
+  const isRoundUnderway =
+    activeRound && (activeRound.status === 'LOBBY' || activeRound.status === 'SELECTION');
+  const isRoundCompleted = activeRound && activeRound.status === 'RESULT';
+  const nextRoundConfig = phaseB.find((r) => r.roundNumber === nextRoundNumber);
+  const totalPhaseBRounds = bundle.event.gamePhaseBRoundCount;
+  const isPhaseBComplete =
+    isRoundCompleted && activeRound.roundNumber >= totalPhaseBRounds;
 
   return (
     <div className="stack">
@@ -289,6 +324,15 @@ export function AdminRoundsPage() {
                   </Button>
                 ) : null}
 
+                {activeRound.status === 'RESULT' ? (
+                  <Button
+                    disabled={actionBusy || liveLoading}
+                    onClick={() => handleStartRound()}
+                  >
+                    Start Round {nextRoundNumber} (Lobby) →
+                  </Button>
+                ) : null}
+
                 <Button
                   variant="ghost"
                   disabled={actionBusy}
@@ -337,12 +381,52 @@ export function AdminRoundsPage() {
               )}
             </div>
           </div>
-        ) : (
-          <div className="stack">
-            <EmptyState
-              title="No Round In Progress"
-              description="Start the next round of Game Phase B to open the Lobby."
-            />
+        ) : null}
+
+        {!isRoundUnderway && (
+          <div
+            className="stack"
+            style={{
+              marginTop: activeRound && activeRound.status !== 'ABORTED' ? 'var(--space-4)' : 0,
+              paddingTop: activeRound && activeRound.status !== 'ABORTED' ? 'var(--space-4)' : 0,
+              borderTop:
+                activeRound && activeRound.status !== 'ABORTED'
+                  ? '1px solid var(--color-border)'
+                  : 'none',
+            }}
+          >
+            {isPhaseBComplete ? (
+              <div
+                style={{
+                  padding: 'var(--space-3)',
+                  background: 'var(--color-bg-subtle, #f0f4f8)',
+                  borderRadius: '4px',
+                  borderLeft: '4px solid var(--color-brand-blue, #1a73e8)',
+                }}
+              >
+                <h3 style={{ margin: '0 0 var(--space-1) 0' }}>
+                  All {totalPhaseBRounds} Phase B Rounds Completed
+                </h3>
+                <p style={{ margin: '0 0 var(--space-2) 0' }}>
+                  All scheduled main game rounds are complete. You can view the final leaderboard or
+                  start an additional tiebreaker round below if required.
+                </p>
+              </div>
+            ) : null}
+
+            <div>
+              <h3>
+                {activeRound && activeRound.status !== 'ABORTED'
+                  ? `Start Round ${nextRoundNumber} of ${totalPhaseBRounds} (Lobby)`
+                  : 'Start Round 1 (Lobby)'}
+              </h3>
+              <p style={{ color: 'var(--color-ink-muted)', margin: '0 0 var(--space-3) 0' }}>
+                {nextRoundConfig?.statCard
+                  ? `Pre-configured Stat Card: ${nextRoundConfig.statCard}. Configure parameters or start immediately.`
+                  : 'Select stat card and timers to start the next round.'}
+              </p>
+            </div>
+
             <div className="form-grid">
               <Select
                 id="stat-card-select"
@@ -393,8 +477,8 @@ export function AdminRoundsPage() {
               </label>
             </div>
             <div className="row">
-              <Button disabled={actionBusy || liveLoading} onClick={handleStartRound}>
-                Start Round (Lobby)
+              <Button disabled={actionBusy || liveLoading} onClick={() => handleStartRound()}>
+                {`Start Round ${nextRoundNumber} (Lobby)`}
               </Button>
             </div>
           </div>
