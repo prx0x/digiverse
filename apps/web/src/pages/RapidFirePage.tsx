@@ -22,6 +22,7 @@ export function RapidFirePage() {
   const [submitting, setSubmitting] = useState(false);
   const [submitMessage, setSubmitMessage] = useState<string | null>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [clockNow, setClockNow] = useState(() => Date.now());
   const { subscribe } = useWebSocket();
 
   async function loadState() {
@@ -35,6 +36,14 @@ export function RapidFirePage() {
       setLoading(false);
     }
   }
+
+  useEffect(() => {
+    const tick = window.setInterval(() => {
+      setClockNow(Date.now());
+    }, 1000);
+
+    return () => window.clearInterval(tick);
+  }, []);
 
   useEffect(() => {
     void loadState();
@@ -98,6 +107,15 @@ export function RapidFirePage() {
   const question = data?.question;
   const submission = data?.teamSubmission;
   const award = data?.award;
+  const countdownSeconds = question?.openedAt
+    ? Math.max(
+        0,
+        question.timeLimitSeconds -
+          Math.floor(
+            (clockNow - new Date(question.openedAt).getTime()) / 1000,
+          ),
+      )
+    : (question?.remainingSeconds ?? 0);
 
   return (
     <div className="stack">
@@ -135,7 +153,7 @@ export function RapidFirePage() {
             }
           />
           {status === 'QUESTION_OPEN' && question && (
-            <Timer seconds={question.remainingSeconds} />
+            <Timer seconds={countdownSeconds} />
           )}
         </div>
       </header>
