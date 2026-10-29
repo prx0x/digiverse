@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import type { StatCard } from '@digiverse/shared';
 import {
   Badge,
@@ -66,18 +66,36 @@ export function RoundPage() {
   const [actionMessage, setActionMessage] = useState<string | null>(null);
   const [reserveInput, setReserveInput] = useState<number>(50);
   const { subscribe } = useWebSocket();
+  const lastRoundSnapshotRef = useRef<{roundId: string | null; status: string | null;}>({roundId: null,status: null,});
 
   async function loadCurrentRound() {
     try {
       const res = await getRoundCurrentApi();
-      setData(res);
-      setError(null);
-      if (res.myPick?.pick) {
-        setSelected(res.myPick.pick);
-      } else {
-        setSelected(null);
-      }
-      setConfirming(false);
+      const snapshot = {
+    roundId: res.round?.id ?? null,
+    status: res.round?.status ?? null,
+  };
+
+  const previous = lastRoundSnapshotRef.current;
+
+  const phaseChanged =
+    previous.roundId !== snapshot.roundId ||
+    previous.status !== snapshot.status;
+
+  setData(res);
+  setError(null);
+
+  if (phaseChanged) {
+    // Reset temporary state only when the round or phase changes.
+    setSelected(res.myPick?.pick ?? null);
+    setConfirming(false);
+  } else if (res.myPick?.isLocked) {
+    // The server has recorded the pick. Synchronize from it.
+    setSelected(res.myPick.pick);
+    setConfirming(false);
+  }
+
+  lastRoundSnapshotRef.current = snapshot;
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load round');
     } finally {
