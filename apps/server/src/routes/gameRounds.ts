@@ -1,6 +1,6 @@
 import type { FastifyPluginAsync } from 'fastify';
 import { z } from 'zod';
-import { badRequest, forbidden } from '../lib/errors.js';
+import { badRequest, conflict, forbidden } from '../lib/errors.js';
 import { assertCsrf, requireRole } from '../plugins/auth.js';
 import {
   advanceRoundToSelection,
@@ -42,6 +42,7 @@ const voidRoundSchema = z.object({
 });
 
 const submitPickSchema = z.object({
+  roundId: z.string().min(1),
   pick: z.number().int().min(1).max(100),
 });
 
@@ -188,12 +189,12 @@ export const gameRoundRoutes: FastifyPluginAsync = async (app) => {
     }
 
     const currentView = await getTeamRoundView(app.db, { teamId: user.team.id });
-    if (!currentView.active || !currentView.round) {
-      throw badRequest('No active round');
+    if (!currentView.active || !currentView.round || currentView.round.id !== parsed.data.roundId) {
+      throw conflict('Round has changed. Please refresh your selection.');
     }
 
     const pick = await submitPick(app.db, {
-      roundId: currentView.round.id,
+      roundId: parsed.data.roundId,
       teamId: user.team.id,
       pick: parsed.data.pick,
     });

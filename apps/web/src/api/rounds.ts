@@ -95,10 +95,10 @@ export async function getRoundCurrentApi(): Promise<TeamRoundView> {
   return fetchApi<TeamRoundView>('/rounds/current');
 }
 
-export async function submitPickApi(pick: number): Promise<{ success: boolean; pick: unknown }> {
+export async function submitPickApi(roundId: string, pick: number): Promise<{ success: boolean; pick: unknown }> {
   return fetchApi('/rounds/current/pick', {
     method: 'POST',
-    body: JSON.stringify({ pick }),
+    body: JSON.stringify({ roundId, pick }),
   });
 }
 

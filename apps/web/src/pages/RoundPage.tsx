@@ -72,30 +72,32 @@ export function RoundPage() {
     try {
       const res = await getRoundCurrentApi();
       const snapshot = {
-    roundId: res.round?.id ?? null,
-    status: res.round?.status ?? null,
-  };
+        roundId: res.round?.id ?? null,
+        status: res.round?.status ?? null,
+      };
 
-  const previous = lastRoundSnapshotRef.current;
+      const previous = lastRoundSnapshotRef.current;
 
-  const phaseChanged =
-    previous.roundId !== snapshot.roundId ||
-    previous.status !== snapshot.status;
+      const phaseChanged =
+        previous.roundId !== snapshot.roundId ||
+        previous.status !== snapshot.status;
 
-  setData(res);
-  setError(null);
+      setData(res);
+      setError(null);
 
-  if (phaseChanged) {
-    // Reset temporary state only when the round or phase changes.
-    setSelected(res.myPick?.pick ?? null);
-    setConfirming(false);
-  } else if (res.myPick?.isLocked) {
-    // The server has recorded the pick. Synchronize from it.
-    setSelected(res.myPick.pick);
-    setConfirming(false);
-  }
+      if (phaseChanged) {
+        // Reset temporary state only when the round or phase changes.
+        setSelected(res.myPick?.pick ?? null);
+        setConfirming(false);
+        setActionMessage(null);
+        setActionError(null);
+      } else if (res.myPick?.isLocked) {
+        // The server has recorded the pick. Synchronize from it.
+        setSelected(res.myPick.pick);
+        setConfirming(false);
+      }
 
-  lastRoundSnapshotRef.current = snapshot;
+      lastRoundSnapshotRef.current = snapshot;
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load round');
     } finally {
@@ -169,11 +171,14 @@ export function RoundPage() {
   const isLocked = Boolean(data.myPick?.isLocked);
 
   async function handleLockIn() {
-    if (selected === null || isLocked) return;
+    if (selected === null || isLocked || !isSelection) return;
+    const pickToSubmit = selected;
+    const roundIdToSubmit = round.id;
+
     setActionBusy(true);
     setActionError(null);
     try {
-      await submitPickApi(selected);
+      await submitPickApi(roundIdToSubmit, pickToSubmit);
       setConfirming(false);
       await loadCurrentRound();
       setActionMessage(`Pick #${selected} locked successfully!`);
