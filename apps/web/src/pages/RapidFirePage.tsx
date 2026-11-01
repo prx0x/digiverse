@@ -178,6 +178,31 @@ export function RapidFirePage() {
         </Panel>
       )}
 
+      {status === 'AWARDED' && question?.correctAnswer && (
+        <Panel title="Correct Answer" accent="yellow">
+          <div className="stack">
+            <p
+              style={{
+                fontSize: 'var(--font-size-xl)',
+                fontWeight: 400,
+              }}
+            >
+              {question.prompt}
+            </p>
+
+            <p
+              style={{
+                fontSize: 'var(--font-size-lg)',
+                fontWeight: 200,
+                color: 'var(--color-success)',
+              }}
+            >
+              {question.correctAnswer}
+            </p>
+          </div>
+        </Panel>
+      )}
+
       {status === 'IDLE' && (
         <EmptyState
           title="Waiting for Question"

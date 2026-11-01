@@ -219,6 +219,7 @@ export interface RapidFireTeamView {
     topN: number;
     questionType: QuestionType;
     options: string[] | null;
+    correctAnswer? : string;
   } | null;
   teamSubmission: {
     submitted: boolean;

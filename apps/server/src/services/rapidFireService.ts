@@ -2,6 +2,7 @@ import { and, desc, eq, sql } from 'drizzle-orm';
 import {
   allocateRapidFireAwards,
   evaluateAnswer,
+  normalizeAnswer,
   type PowerUpCard,
   type RapidFireAdminAward,
   type RapidFireAdminState,
@@ -392,6 +393,40 @@ export async function submitRapidFireAnswer(
   };
 }
 
+function getRapidFireDisplayAnswer(question: {
+  answerDefinition: string;
+  questionType: 'TEXT' | 'MCQ';
+  options: string[] | null;
+}): string {
+  const answer = question.answerDefinition.trim();
+
+  if (question.questionType !== 'MCQ' || !question.options?.length) {
+    return answer;
+  }
+
+  // If the answer is already the option text, return it directly.
+  const matchingOption = question.options.find(
+    (option) => normalizeAnswer(option) === normalizeAnswer(answer),
+  );
+
+  if (matchingOption) return matchingOption;
+
+  // Resolve A/B/C... or zero-based numeric option indices.
+  const letterIndex = /^[A-J]$/i.test(answer)
+    ? answer.toUpperCase().charCodeAt(0) - 65
+    : -1;
+
+  const numericIndex = /^\d+$/.test(answer)
+    ? Number(answer)
+    : -1;
+
+  const optionIndex = letterIndex >= 0 ? letterIndex : numericIndex;
+
+  return optionIndex >= 0 && optionIndex < question.options.length
+    ? question.options[optionIndex]
+    : answer;
+}
+
 export async function getRapidFireTeamView(
   db: Db,
   { eventId, teamId }: { eventId: string; teamId: string },
@@ -501,6 +536,11 @@ export async function getRapidFireTeamView(
           topN: question.topN,
           questionType: question.questionType,
           options: question.options,
+          ...(session.status === 'AWARDED'
+            ? {
+                correctAnswer: getRapidFireDisplayAnswer(question),
+              }
+            : {}),
         }
       : null,
     teamSubmission: {
